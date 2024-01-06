@@ -40,6 +40,51 @@
                     "type": "bytes"
                 }
             ]
+        },
+        {
+            "name": "retrieve_client_id_by_address",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "name": "retrieve_address_by_client_id",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "client_id",
+                    "type": "u32"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "name": "store_ipfs_file",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "bytes"
+                },
+                {
+                    "name": "client_id",
+                    "type": "u32"
+                }
+            ],
+            "outputs": []
         }
     ],
     "esdtAttributes": [],

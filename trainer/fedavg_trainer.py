@@ -8,9 +8,26 @@ import os
 import subprocess
 import sys
 
-# result = subprocess.run("ipfs add /Users/stefan/ssi-proiect/trainer/fedavg_trainer.py | awk '{print $2}'", shell=True, capture_output=True, text=True)
-# print("Output:", result.stdout)
-# print("Return Code:", result.returncode)
+def upload_weights_ipfs(weights, directory, filename):
+    upload_file = os.path.join(directory, filename)
+    with open(upload_file, 'wb') as file:
+        pickle.dump(weights, file)
+    upload_command = ["ipfs add ", upload_file, " | awk '{print $2}'"]
+    upload_file_id = subprocess.run(''.join(upload_command), shell=True, capture_output=True, text=True).stdout[:-1]
+    return upload_file_id    
+
+
+def download_weights_ipfs(file_id, directory, filename):
+    download_file = os.path.join(directory, filename)
+    with open(download_file, 'w'):
+        pass
+
+    download_command = ["ipfs cat ", file_id, " > ", download_file]   
+    subprocess.run(''.join(download_command), shell=True, capture_output=True, text=True)
+    with open(download_file, 'rb') as file:
+        weights = pickle.load(file)
+    return weights
+    
 
 # Load and preprocess the MNIST dataset
 (train_images, train_labels), (test_images, test_labels) = mnist.load_data()
@@ -37,16 +54,8 @@ num_clients = 10
 weights_dir = 'client_weights'
 os.makedirs(weights_dir, exist_ok=True)
 
-inital_weights_file = os.path.join(weights_dir, f'genesis_weights.pkl')
-with open(inital_weights_file, 'wb') as file:
-    pickle.dump(global_model.get_weights(), file)
-
-initial_upload_command = ["ipfs add ", inital_weights_file, " | awk '{print $2}'"]
-print(''.join(initial_upload_command))
-
-initial_weights_file_id = subprocess.run(''.join(initial_upload_command), shell=True, capture_output=True, text=True).stdout[:-1]
-
-print(f"Genesis model is uploaded at IPFS ID: {initial_weights_file_id}")
+global_weights_id = upload_weights_ipfs(global_model.get_weights(), weights_dir, "genesis_weights.pkl")
+print(f"Genesis model is uploaded at IPFS ID: {global_weights_id}")
 
 # Simulate Federated Learning rounds
 for round_num in range(3):
@@ -57,21 +66,10 @@ for round_num in range(3):
     # Simulate training on each client
     for client_id in range(num_clients):
         print(f"\nTraining on Client {client_id + 1}")
-
-        initial_client_weights_file = os.path.join(weights_dir, f'initial_client_{client_id}_round_{round_num}_weights.pkl')
-        with open(initial_client_weights_file, 'w'):
-            pass
         
-        download_global_command = ["ipfs cat ", initial_weights_file_id, " > ", initial_client_weights_file]
-        
-        subprocess.run(''.join(download_global_command), shell=True, capture_output=True, text=True)
-        
-        with open(initial_client_weights_file, 'rb') as file:
-            initial_local_weights = pickle.load(file)
-        
-        # Create a copy of the global model for the client
+        global_weights = download_weights_ipfs(global_weights_id, weights_dir, f'client_{client_id}_round_{round_num}_weights.pkl')
         local_model = tf.keras.models.clone_model(global_model)
-        local_model.set_weights(initial_local_weights)
+        local_model.set_weights(global_weights)
         local_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
         # Simulate training on local data
@@ -79,52 +77,26 @@ for round_num in range(3):
                         train_labels[client_id * 6000 : (client_id + 1) * 6000],
                         epochs=1, batch_size=64, validation_split=0.2)
 
-        # local_models.append(local_model)
-        resulted_weights_file = os.path.join(weights_dir, f'result_client_{client_id}_round_{round_num}_weights.pkl')
-        with open(resulted_weights_file, 'wb') as file:
-            pickle.dump(local_model.get_weights(), file)
-
-        upload_global_command = ["ipfs add ", resulted_weights_file, " | awk '{print $2}'"]
-        resulted_weights_file_id = subprocess.run(''.join(upload_global_command), shell=True, capture_output=True, text=True).stdout[:-1]
         
-        resulted_upload_files_ids.append((client_id, resulted_weights_file_id))
-        # Get the local model's weights
-        # local_weights = local_model.get_weights()
-
-        # # Send local model weights to the server
-        # # Simulate communication to a central server (in a real federated learning setup)
-        # # In a real setup, you would use a federated learning framework (e.g., TensorFlow Federated)
-        # # to handle communication between the server and clients.
-        # # Here, we're just directly updating the global model's weights.
-        # global_model.set_weights([
-        #     (global_weights + local_weights) / 2 for global_weights, local_weights in zip(global_model.get_weights(), local_weights)
-        # ])
+        new_local_id = upload_weights_ipfs(local_model.get_weights(), weights_dir, f'result_client_{client_id}_round_{round_num}_weights.pkl')
+        resulted_upload_files_ids.append((client_id, new_local_id))
     
     # Aggregate local updates using FedAvg
     avg_weights = [np.zeros_like(weight) for weight in global_model.get_weights()]
 
     for (client_id, file_id) in resulted_upload_files_ids:
         # Load local model weights from file
-        
-        download_result_weights_file = os.path.join(weights_dir, f'download_result_client_{client_id}_round_{round_num}_weights.pkl')
-        with open(download_result_weights_file, 'w'):
-            pass
-        
-        download_global_command = ["ipfs cat ", file_id, " > ", download_result_weights_file]
-        
-        subprocess.run(''.join(download_global_command), shell=True, capture_output=True, text=True)
-        
-        with open(download_result_weights_file, 'rb') as file:
-            local_weights = pickle.load(file)
-
+        client_weights = download_weights_ipfs(file_id, weights_dir, f'download_result_client_{client_id}_round_{round_num}_weights.pkl')
         # Aggregate weights
-        avg_weights = [avg + local for avg, local in zip(avg_weights, local_weights)]
+        avg_weights = [avg + local for avg, local in zip(avg_weights, client_weights)]
 
     # Calculate the average of the weights
     avg_weights = [weight / num_clients for weight in avg_weights]
 
     # Update the global model with the averaged weights
     global_model.set_weights(avg_weights)
+    
+    global_weights_id = upload_weights_ipfs(global_model.get_weights(), weights_dir, f'global_weights_after_round_{round_num}')
 
 # Evaluate the final global model on the test set
 test_loss, test_acc = global_model.evaluate(test_images, test_labels)
