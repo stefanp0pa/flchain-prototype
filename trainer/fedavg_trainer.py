@@ -25,7 +25,7 @@ global_model.add(layers.Dense(10, activation='softmax'))
 global_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
 # Number of clients
-num_clients = 20
+num_clients = 1
 
 # Directory to store weights files
 weights_dir = 'client_weights'
@@ -45,8 +45,8 @@ for round_num in range(10):
         local_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
         # Simulate training on local data
-        local_model.fit(train_images[client_id * 3000 : (client_id + 1) * 3000],
-                        train_labels[client_id * 3000 : (client_id + 1) * 3000],
+        local_model.fit(train_images[client_id * 60000 : (client_id + 1) * 60000],
+                        train_labels[client_id * 60000 : (client_id + 1) * 60000],
                         epochs=1, batch_size=64, validation_split=0.2)
 
         # local_models.append(local_model)
