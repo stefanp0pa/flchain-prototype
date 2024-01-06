@@ -1,0 +1,52 @@
+{
+    "buildInfo": {
+        "rustc": {
+            "version": "1.76.0-nightly",
+            "commitHash": "d86d65bbc19b928387f68427fcc3a0da498d8a19",
+            "commitDate": "2023-12-10",
+            "channel": "Nightly",
+            "short": "rustc 1.76.0-nightly (d86d65bbc 2023-12-10)"
+        },
+        "contractCrate": {
+            "name": "flchain_dummy",
+            "version": "0.0.0"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.45.2"
+        }
+    },
+    "abi": {
+        "docs": [
+            "An empty contract. To be used as a template when starting a new contract from scratch."
+        ],
+        "name": "FlchainDummy",
+        "constructor": {
+            "inputs": [],
+            "outputs": []
+        },
+        "endpoints": [
+            {
+                "name": "upgrade",
+                "mutability": "mutable",
+                "inputs": [],
+                "outputs": []
+            },
+            {
+                "name": "generate_random_dna",
+                "mutability": "readonly",
+                "inputs": [],
+                "outputs": [
+                    {
+                        "type": "bytes"
+                    }
+                ]
+            }
+        ],
+        "esdtAttributes": [],
+        "hasCallback": false,
+        "types": {}
+    },
+    "size": 395,
+    "code": "0061736d010000000119056000006000017f60027f7f0060037f7f7f017f60017f017f02680503656e760f6765744e756d417267756d656e7473000103656e760b7369676e616c4572726f72000203656e760e636865636b4e6f5061796d656e74000003656e760f6d4275666665725365744279746573000303656e760d6d42756666657246696e6973680004030504000000000503010003060f027f0041ac80080b7f0041b080080b075707066d656d6f7279020004696e697400061367656e65726174655f72616e646f6d5f646e6100070863616c6c4261636b0008077570677261646500060a5f5f646174615f656e6403000b5f5f686561705f6261736503010a4b04120010004504400f0b418d800841191001000b0600100210050b2b01017f1002100541a8800841a8800828020041016b2200360200200041808008410d10031a200010041a0b0300010b0b390200418080080b2657616b612077616b612065656577726f6e67206e756d626572206f6620617267756d656e74730041a880080b049cffffff"
+}
