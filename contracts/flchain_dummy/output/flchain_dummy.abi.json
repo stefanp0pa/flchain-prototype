@@ -137,6 +137,10 @@
                     "name": "client_id",
                     "type": "u32",
                     "indexed": true
+                },
+                {
+                    "name": "data",
+                    "type": "bytes"
                 }
             ]
         }

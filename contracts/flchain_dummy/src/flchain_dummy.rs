@@ -41,8 +41,8 @@ pub trait FlchainDummy {
     #[endpoint]
     fn set_ipfs_file(&self, address: ManagedBuffer, client_id: u32) {
         self.client_by_ipfs_address(&address).set(client_id);
-        self.ipfs_address_by_client(&client_id).set(address);
-        self.new_flchain_event(client_id);
+        self.ipfs_address_by_client(&client_id).set(address.clone());
+        self.new_flchain_event(client_id, address.clone());
     }
 
     #[endpoint]
@@ -78,6 +78,7 @@ pub trait FlchainDummy {
     fn new_flchain_event(
         &self,
         #[indexed] client_id: u32,
+        data: ManagedBuffer
     );
 
 
