@@ -52,12 +52,12 @@ upgrade_contract() {
         --send || return
 }
 
-call_contract_store_address() {
+call_contract_set_ipfs_address() {
     mxpy contract call ${CONTRACT_ADDR} --recall-nonce \
         --pem=${WALLET_PEM} \
         --gas-limit=${GAS_LIMIT} \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
-        --function store_ipfs_file --arguments $1 $2 \
+        --function set_ipfs_file --arguments $1 $2 \
         --send
 }
 
@@ -71,4 +71,19 @@ query_contract_retrieve_address_by_client_id() {
     mxpy contract query ${CONTRACT_ADDR} \
         --proxy=${PROXY}\
         --function retrieve_address_by_client_id --arguments $1
+}
+
+query_genesis_address() {
+    mxpy contract query ${CONTRACT_ADDR} \
+        --proxy=${PROXY}\
+        --function get_genesis_address
+}
+
+call_contract_set_genesis() {
+    mxpy contract call ${CONTRACT_ADDR} --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --gas-limit=${GAS_LIMIT} \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --function set_genesis_address --arguments $1 \
+        --send
 }

@@ -8,10 +8,11 @@
   "mBufferSetBytes",
   "mBufferStorageLoad",
   "mBufferGetLength",
+  "mBufferStorageStore",
   "mBufferAppend",
   "checkNoPayment",
   "mBufferFinish",
   "mBufferGetByteSlice",
   "smallIntFinishUnsigned",
-  "mBufferStorageStore"
+  "managedWriteLog"
 ]

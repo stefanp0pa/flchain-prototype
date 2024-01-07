@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                            5
+// Endpoints:                            9
 // Async Callback (empty):               1
-// Total number of exported functions:   7
+// Total number of exported functions:  11
 
 #![no_std]
 #![allow(internal_features)]
@@ -24,7 +24,11 @@ multiversx_sc_wasm_adapter::endpoints! {
         generate_random_dna => generate_random_dna
         retrieve_client_id_by_address => retrieve_client_id_by_address
         retrieve_address_by_client_id => retrieve_address_by_client_id
-        store_ipfs_file => store_ipfs_file
+        set_ipfs_file => set_ipfs_file
+        set_genesis_address => set_genesis_address
+        set_global_version_address => set_global_version_address
+        get_genesis_address => get_genesis_address
+        get_global_version_address => get_global_version_address
     )
 }
 

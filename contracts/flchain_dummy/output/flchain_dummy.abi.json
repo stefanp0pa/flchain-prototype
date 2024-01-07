@@ -72,7 +72,7 @@
             ]
         },
         {
-            "name": "store_ipfs_file",
+            "name": "set_ipfs_file",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -85,6 +85,60 @@
                 }
             ],
             "outputs": []
+        },
+        {
+            "name": "set_genesis_address",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "set_global_version_address",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "get_genesis_address",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "name": "get_global_version_address",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bytes"
+                }
+            ]
+        }
+    ],
+    "events": [
+        {
+            "identifier": "new_flchain_event",
+            "inputs": [
+                {
+                    "name": "client_id",
+                    "type": "u32",
+                    "indexed": true
+                }
+            ]
         }
     ],
     "esdtAttributes": [],

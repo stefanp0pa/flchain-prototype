@@ -8,6 +8,105 @@ import os
 import subprocess
 import sys
 
+from pathlib import Path
+from multiversx_sdk_core import TokenComputer
+from multiversx_sdk_core.transaction_factories import SmartContractTransactionsFactory
+from multiversx_sdk_core.transaction_builders.relayed_v1_builder import RelayedTransactionV1Builder
+from multiversx_sdk_core import Transaction, TransactionComputer, Address
+from multiversx_sdk_wallet.user_signer import UserSigner
+from multiversx_sdk_core.transaction_factories import TransactionsFactoryConfig
+from multiversx_sdk_core import ContractQueryBuilder
+from multiversx_sdk_network_providers import ApiNetworkProvider
+from multiversx_sdk_core import AccountNonceHolder
+
+config = TransactionsFactoryConfig(chain_id="D")
+transaction_computer = TransactionComputer()
+sc_factory = SmartContractTransactionsFactory(config, TokenComputer())
+contract_address = Address.from_bech32("erd1qqqqqqqqqqqqqpgq5fqj294099nurngdz9rzgv7du0n6h4vedttshsdl08")
+
+alice = Address.new_from_bech32("erd1hgzhjjw47405npzjh8drx9hx4setln9phu798nhwvtgnz5lmdtts0pze2d")
+signer = UserSigner.from_pem_file(Path("/Users/stefan/ssi-proiect/contracts/wallet2.pem"))
+
+network_provider = ApiNetworkProvider("https://devnet-api.multiversx.com")
+alice_on_network = network_provider.get_account(alice)
+
+print(alice_on_network)
+
+nonce_holder = AccountNonceHolder(alice_on_network.nonce)
+
+print(alice_on_network.nonce)
+
+sys.exit()
+
+nonce_holder.get_nonce_then_increment()
+
+print(nonce_holder.get_nonce_then_increment())
+
+# Then, sign & broadcast the transaction(s).
+
+call_transaction = sc_factory.create_transaction_for_execute(
+    sender=alice,
+    contract=contract_address,
+    function="set_genesis_address",
+    gas_limit=60000000,
+    arguments=["Qmdc1jVM494ckaQ6RoHu8qhmuGdGMSxL2r1xF711zKrvQ7"]
+)
+
+call_transaction.nonce = 23
+call_transaction.signature = signer.sign(transaction_computer.compute_bytes_for_signing(call_transaction))
+
+print("Transaction:", call_transaction.__dict__)
+print("Transaction data:", call_transaction.data)
+
+
+response = network_provider.send_transaction(call_transaction)
+
+print(response)
+
+sys.exit()
+
+# builder = ContractQueryBuilder(
+#     contract=contract_address,
+#     function="get_genesis_address",
+#     call_arguments=[],
+#     caller=alice
+# )
+
+# query = builder.build()
+
+# network_provider = ApiNetworkProvider("https://devnet-api.multiversx.com")
+# response = network_provider.query_contract(query)
+
+# print("Return code:", response.return_code)
+# print("Return data:", response.return_data)
+
+# inner_tx = Transaction(
+#     sender=alice,
+#     contract=contract_address,
+#     function="set_genesis_address",
+#     gas_limit=60000000,
+#     arguments=["Qmdc1jVM494ckaQ6RoHu8qhmuGdGMSxL2r1xF711zKrvQ7"]
+# )
+# inner_tx.signature = signer.sign(transaction_computer.compute_bytes_for_signing(inner_tx))
+
+# call_transaction = sc_factory.create_transaction_for_execute(inner_tx)
+
+# print("Transaction:", call_transaction.__dict__)
+# print("Transaction data:", call_transaction.data)
+
+sys.exit()
+
+def set_genesis_id(genesis_id):
+    hex_code = genesis_id.encode('utf-8').hex()
+    print(f"Genesis ID: {genesis_id}")
+    print(f"The hex conversion: {hex_code}")
+    print(sys.path)
+    # set_genesis_id_command=['call_contract_set_genesis 0x', hex_code]
+    # error = subprocess.run(''.join(set_genesis_id_command), shell=True, capture_output=True, text=True).stderr
+    # print(error)
+    sys.exit()
+
+
 def upload_weights_ipfs(weights, directory, filename):
     upload_file = os.path.join(directory, filename)
     with open(upload_file, 'wb') as file:
@@ -27,7 +126,7 @@ def download_weights_ipfs(file_id, directory, filename):
     with open(download_file, 'rb') as file:
         weights = pickle.load(file)
     return weights
-    
+
 
 # Load and preprocess the MNIST dataset
 (train_images, train_labels), (test_images, test_labels) = mnist.load_data()
@@ -56,6 +155,10 @@ os.makedirs(weights_dir, exist_ok=True)
 
 global_weights_id = upload_weights_ipfs(global_model.get_weights(), weights_dir, "genesis_weights.pkl")
 print(f"Genesis model is uploaded at IPFS ID: {global_weights_id}")
+
+set_genesis_id(global_weights_id)
+
+sys.exit()
 
 # Simulate Federated Learning rounds
 for round_num in range(3):
