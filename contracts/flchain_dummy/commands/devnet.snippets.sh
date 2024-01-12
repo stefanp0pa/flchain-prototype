@@ -2,7 +2,9 @@ GAS_LIMIT=60000000
 PROXY="https://devnet-gateway.multiversx.com"
 CHAIN_ID="D"
 BYTECODE="/Users/stefan/ssi-proiect/contracts/flchain_dummy/output/flchain_dummy.wasm"
-WALLET_PEM="/Users/stefan/ssi-proiect/contracts/wallet2.pem"
+WALLET_PEM="/Users/stefan/ssi-proiect/contracts/wallets/wallet2.pem"
+PRIMUS_WALLET="/Users/stefan/ssi-proiect/contracts/wallets/primus_wallet.pem"
+SECUNDUS_WALLET="/Users/stefan/ssi-proiect/contracts/wallets/secundus_wallet.pem"
 
 set_wallet() {
     WALLET_PEM=$1
@@ -77,6 +79,36 @@ query_genesis_address() {
     mxpy contract query ${CONTRACT_ADDR} \
         --proxy=${PROXY}\
         --function get_genesis_address
+}
+
+call_contract_signup_trainer() {
+    mxpy contract call ${CONTRACT_ADDR} --recall-nonce \
+        --pem=${PRIMUS_WALLET} \
+        --gas-limit=${GAS_LIMIT} \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --function signup_trainer --arguments $1 \
+        --send
+}
+
+query_contract_trainers_count() {
+    mxpy contract query ${CONTRACT_ADDR} \
+        --proxy=${PROXY}\
+        --function trainers_count --arguments $1
+}
+
+query_contract_iterate_trainers() {
+    mxpy contract query ${CONTRACT_ADDR} \
+        --proxy=${PROXY}\
+        --function iterate_trainers --arguments $1
+}
+
+call_contract_remove_trainer() {
+    mxpy contract call ${CONTRACT_ADDR} --recall-nonce \
+        --pem=${PRIMUS_WALLET} \
+        --gas-limit=${GAS_LIMIT} \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --function remove_trainer --arguments $1 \
+        --send
 }
 
 call_contract_set_genesis() {

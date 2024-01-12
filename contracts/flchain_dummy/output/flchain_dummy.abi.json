@@ -72,6 +72,62 @@
             ]
         },
         {
+            "name": "signup_trainer",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "job_hash",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "remove_trainer",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "job_hash",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "trainers_count",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "job_hash",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "name": "iterate_trainers",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "job_hash",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
             "name": "set_ipfs_file",
             "mutability": "mutable",
             "inputs": [

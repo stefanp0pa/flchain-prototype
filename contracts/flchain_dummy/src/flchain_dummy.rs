@@ -39,6 +39,34 @@ pub trait FlchainDummy {
     }
 
     #[endpoint]
+    fn signup_trainer(&self, job_hash: ManagedBuffer) {
+        let caller = self.blockchain().get_caller();
+        self.trainers(&job_hash).insert(caller);
+    }
+
+    #[endpoint]
+    fn remove_trainer(&self, job_hash: ManagedBuffer) -> bool {
+        let caller = self.blockchain().get_caller();
+        self.trainers(&job_hash).swap_remove(&caller)
+    }
+
+    #[view]
+    fn trainers_count(&self, job_hash: ManagedBuffer) -> usize {
+        self.trainers(&job_hash).len()
+    }
+
+    #[view]
+    fn iterate_trainers(&self, job_hash: ManagedBuffer) -> ManagedBuffer {
+        let result: ManagedBuffer = ManagedBuffer::new();
+        for trainer in self.trainers(&job_hash).iter() {
+            let another = trainer.as_managed_buffer();
+            result.clone().concat(ManagedBuffer::from(" | "));
+            result.clone().concat(another.clone());
+        };
+        result
+    }
+
+    #[endpoint]
     fn set_ipfs_file(&self, address: ManagedBuffer, client_id: u32) {
         self.client_by_ipfs_address(&address).set(client_id);
         self.ipfs_address_by_client(&client_id).set(address.clone());
@@ -48,7 +76,6 @@ pub trait FlchainDummy {
     #[endpoint]
     fn set_genesis_address(&self, address: ManagedBuffer) {
         self.genesis_address().set(&address);
-        self.global_model_version().set(&address);
     }
 
     #[endpoint]
@@ -81,6 +108,14 @@ pub trait FlchainDummy {
         data: ManagedBuffer
     );
 
+    // #[storage_mapper("trainers")]
+    // fn trainers(&self, job_id: &u32) -> UnorderedSetMapper<ManagedAddress[]>;
+
+    #[storage_mapper("trainers")]
+    fn trainers(&self, job_hash: &ManagedBuffer) -> UnorderedSetMapper<ManagedAddress>;
+
+    #[storage_mapper("caller_storage")]
+    fn caller_storage(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[storage_mapper("global_model_version")]
     fn global_model_version(&self) -> SingleValueMapper<ManagedBuffer>;

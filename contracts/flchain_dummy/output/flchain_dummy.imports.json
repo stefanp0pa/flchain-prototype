@@ -2,6 +2,7 @@
   "signalError",
   "mBufferNew",
   "mBufferAppend",
+  "managedCaller",
   "mBufferAppendBytes",
   "managedSignalError",
   "mBufferGetArgument",
@@ -11,9 +12,10 @@
   "mBufferStorageLoad",
   "mBufferGetLength",
   "mBufferStorageStore",
+  "mBufferGetByteSlice",
   "checkNoPayment",
   "mBufferFinish",
-  "mBufferGetByteSlice",
   "smallIntFinishUnsigned",
+  "smallIntFinishSigned",
   "managedWriteLog"
 ]
