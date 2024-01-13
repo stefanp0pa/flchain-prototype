@@ -13,13 +13,6 @@ assess_condition() {
     [ "$1" == true ]
 }
 
-ends_with() {
-    case $1 in
-        *"$2") return 0;;  # String ends with the specified suffix
-        *) return 1;;      # String does not end with the specified suffix
-    esac
-}
-
 should_block_timestamp_increment() {
     first_timestamp=$(query_contract_block_timestamp | jq -r '.[0].number')
     sleep 6
@@ -39,10 +32,28 @@ should_be_signup_open_1() {
     [ "$query_failed_part" == "Query failed: No training session available!" ]
 }
 
-should_be_training_open_1() {
+should_be_signup_open_2() {
+    ipfs_addr=0x516d536d3169746375414e6969335337454e65766273737635656f774c716a753862315665384333567435314637
+    call_start_session $ipfs_addr 0x06 0x05 0x02 > /dev/null 2>&1
+    sleep 6
+    is_signup_open=$(query_is_signup_open | jq -r '.[0].number')
+    call_end_session > /dev/null 2>&1
+    [ "$is_signup_open" == "1" ]
+}
+
+should_not_be_training_open_1() {
     error_message=$(query_is_training_open 2>&1 | tail -n 1)
     query_failed_part=$(echo "$error_message" | grep -o "Query failed:.*$")
     [ "$query_failed_part" == "Query failed: No training session available!" ]
+}
+
+should_be_training_open() {
+    ipfs_addr=0x516d536d3169746375414e6969335337454e4e65766273737635656f774c716a753862315665384333567435314637
+    call_start_session $ipfs_addr 0x01 0x08 0x01 > /dev/null 2>&1
+    sleep 18
+    is_training_open=$(query_is_training_open | jq -r '.[0].number')
+    call_end_session > /dev/null 2>&1
+    [ "$is_training_open" == "1" ]
 }
 
 should_be_aggregation_open_1() {
@@ -51,31 +62,27 @@ should_be_aggregation_open_1() {
     [ "$query_failed_part" == "Query failed: No training session available!" ]
 }
 
+should_proposer_exist_1() {
+    error_message=$(query_get_proposer 2>&1 | tail -n 1)
+    query_failed_part=$(echo "$error_message" | grep -o "Query failed:.*$")
+    [ "$query_failed_part" == "Query failed: No training session available!" ]
+}
 
+should_proposer_exist_2() {
+    ipfs_addr=0x516d536d3169746375414e6969335337454e65766273737635656f774c716a753862315665384333567435314637
+    call_start_session $ipfs_addr 0x06 0x05 0x02 > /dev/null 2>&1
+    sleep 6
+    hexed_addr=$(query_get_proposer | jq -r '.[0].hex')
+    call_end_session > /dev/null 2>&1
+    [ "$hexed_addr" == "ba057949d5f55f498452b9da3316e6ac32bfcca1bf3c53ceee62d13153fb6ad7" ]
+}
 
-# should_block_timestamp_increment && echo "[✅] Test: should_block_timestamp_increment" || echo "[❌] Test: should_block_timestamp_increment"
+should_block_timestamp_increment && echo "[✅] Test: should_block_timestamp_increment" || echo "[❌] Test: should_block_timestamp_increment"
 should_be_active_session_1 && echo "[✅] Test: should_be_active_session_1" || echo "[❌] Test: should_be_active_session_1"
 should_be_signup_open_1 && echo "[✅] Test: should_be_signup_open_1" || echo "[❌] Test: should_be_signup_open_1"
-should_be_training_open_1 && echo "[✅] Test: should_be_training_open_1" || echo "[❌] Test: should_be_training_open_1"
+should_be_signup_open_2 && echo "[✅] Test: should_be_signup_open_2" || echo "[❌] Test: should_be_signup_open_2"
+should_not_be_training_open_1 && echo "[✅] Test: should_not_be_training_open_1" || echo "[❌] Test: should_not_be_training_open_1"
+should_be_training_open && echo "[✅] Test: should_be_training_open" || echo "[❌] Test: should_be_training_open"
 should_be_aggregation_open_1 && echo "[✅] Test: should_be_aggregation_open_1" || echo "[❌] Test: should_be_aggregation_open_1"
-
-# run_tests() {
-#     successful_tests=0
-#     failed_tests=0
-
-#     # Run and count successful tests
-#     test_function1 && ((successful_tests++)) || ((failed_tests++))
-#     test_function2 && ((successful_tests++)) || ((failed_tests++))
-#     test_function3 && ((successful_tests++)) || ((failed_tests++))
-
-#     # Display results
-#     echo "Total tests: $((successful_tests + failed_tests))"
-#     echo "Successful tests: $successful_tests"
-
-#     if [ "$failed_tests" -gt 0 ]; then
-#         echo "Failed tests:"
-#         test_function1 || echo "  - Test 1"
-#         test_function2 || echo "  - Test 2"
-#         test_function3 || echo "  - Test 3"
-#     fi
-# }
+should_proposer_exist_1 && echo "[✅] Test: should_proposer_exist_1" || echo "[❌] Test: should_proposer_exist_1"
+should_proposer_exist_2 && echo "[✅] Test: should_proposer_exist_2" || echo "[❌] Test: should_proposer_exist_2"
