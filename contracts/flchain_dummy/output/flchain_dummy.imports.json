@@ -8,14 +8,16 @@
   "mBufferGetArgument",
   "smallIntGetUnsignedArgument",
   "getNumArguments",
-  "mBufferSetBytes",
-  "mBufferStorageLoad",
-  "mBufferGetLength",
-  "mBufferStorageStore",
   "mBufferGetByteSlice",
+  "mBufferSetBytes",
+  "mBufferGetLength",
+  "mBufferStorageLoad",
+  "mBufferStorageStore",
   "checkNoPayment",
-  "mBufferFinish",
-  "smallIntFinishUnsigned",
+  "getBlockTimestamp",
+  "mBufferSetRandom",
+  "managedWriteLog",
   "smallIntFinishSigned",
-  "managedWriteLog"
+  "smallIntFinishUnsigned",
+  "mBufferFinish"
 ]

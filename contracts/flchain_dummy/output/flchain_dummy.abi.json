@@ -32,12 +32,91 @@
             "outputs": []
         },
         {
-            "name": "generate_random_dna",
+            "name": "start_session",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "global_model_addr",
+                    "type": "bytes"
+                },
+                {
+                    "name": "rounds_signup",
+                    "type": "u64"
+                },
+                {
+                    "name": "rounds_training",
+                    "type": "u64"
+                },
+                {
+                    "name": "rounds_aggregation",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "end_session",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "is_session_active",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
                 {
-                    "type": "bytes"
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "get_active_session",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "is_signup_open",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "is_training_open",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "is_aggregation_open",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "get_proposer",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
                 }
             ]
         },
@@ -113,17 +192,22 @@
             ]
         },
         {
-            "name": "iterate_trainers",
+            "name": "get_string_vector",
             "mutability": "readonly",
-            "inputs": [
-                {
-                    "name": "job_hash",
-                    "type": "bytes"
-                }
-            ],
+            "inputs": [],
             "outputs": [
                 {
-                    "type": "bytes"
+                    "type": "List<bytes>"
+                }
+            ]
+        },
+        {
+            "name": "get_timestamp",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u64"
                 }
             ]
         },
@@ -141,67 +225,94 @@
                 }
             ],
             "outputs": []
-        },
-        {
-            "name": "set_genesis_address",
-            "mutability": "mutable",
-            "inputs": [
-                {
-                    "name": "address",
-                    "type": "bytes"
-                }
-            ],
-            "outputs": []
-        },
-        {
-            "name": "set_global_version_address",
-            "mutability": "mutable",
-            "inputs": [
-                {
-                    "name": "address",
-                    "type": "bytes"
-                }
-            ],
-            "outputs": []
-        },
-        {
-            "name": "get_genesis_address",
-            "mutability": "readonly",
-            "inputs": [],
-            "outputs": [
-                {
-                    "type": "bytes"
-                }
-            ]
-        },
-        {
-            "name": "get_global_version_address",
-            "mutability": "readonly",
-            "inputs": [],
-            "outputs": [
-                {
-                    "type": "bytes"
-                }
-            ]
         }
     ],
     "events": [
         {
-            "identifier": "new_flchain_event",
+            "identifier": "session_started_event",
             "inputs": [
                 {
-                    "name": "client_id",
-                    "type": "u32",
+                    "name": "session_id",
+                    "type": "u64",
                     "indexed": true
                 },
                 {
-                    "name": "data",
-                    "type": "bytes"
+                    "name": "start_time",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "rounds_signup",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "rounds_training",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "rounds_aggregation",
+                    "type": "u64",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "session_ended_event",
+            "inputs": [
+                {
+                    "name": "session_id",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "end_time",
+                    "type": "u64",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "new_signup_event",
+            "inputs": [
+                {
+                    "name": "session_id",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "user",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "role",
+                    "type": "Role",
+                    "indexed": true
                 }
             ]
         }
     ],
     "esdtAttributes": [],
     "hasCallback": false,
-    "types": {}
+    "types": {
+        "Role": {
+            "type": "enum",
+            "variants": [
+                {
+                    "name": "Proposer",
+                    "discriminant": 0
+                },
+                {
+                    "name": "Trainer",
+                    "discriminant": 1
+                },
+                {
+                    "name": "Aggregator",
+                    "discriminant": 2
+                }
+            ]
+        }
+    }
 }

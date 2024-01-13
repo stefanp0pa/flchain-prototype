@@ -6,12 +6,16 @@ WALLET_PEM="/Users/stefan/ssi-proiect/contracts/wallets/wallet2.pem"
 PRIMUS_WALLET="/Users/stefan/ssi-proiect/contracts/wallets/primus_wallet.pem"
 SECUNDUS_WALLET="/Users/stefan/ssi-proiect/contracts/wallets/secundus_wallet.pem"
 
+WALLETS_DIR="/Users/stefan/ssi-proiect/contracts/flchain_dummy/wallets/"
+
 set_wallet() {
     WALLET_PEM=$1
+    echo "Wallet file location is: ${WALLET_PEM}"
 }
 
 set_contract() {
     CONTRACT_ADDR=$1
+    echo "Smart contract address: ${CONTRACT_ADDR}"
 }
 
 set_bytecode() {
@@ -54,6 +58,18 @@ upgrade_contract() {
         --send || return
 }
 
+query_contract_get_constant() {
+    mxpy contract query ${CONTRACT_ADDR} \
+        --proxy=${PROXY}\
+        --function get_constant
+}
+
+query_contract_get_deadline() {
+    mxpy contract query ${CONTRACT_ADDR} \
+        --proxy=${PROXY}\
+        --function getDeadline
+}
+
 call_contract_set_ipfs_address() {
     mxpy contract call ${CONTRACT_ADDR} --recall-nonce \
         --pem=${WALLET_PEM} \
@@ -81,6 +97,12 @@ query_genesis_address() {
         --function get_genesis_address
 }
 
+query_contract_block_timestamp() {
+    mxpy contract query ${CONTRACT_ADDR} \
+        --proxy=${PROXY}\
+        --function get_timestamp
+}
+
 call_contract_signup_trainer() {
     mxpy contract call ${CONTRACT_ADDR} --recall-nonce \
         --pem=${PRIMUS_WALLET} \
@@ -94,6 +116,18 @@ query_contract_trainers_count() {
     mxpy contract query ${CONTRACT_ADDR} \
         --proxy=${PROXY}\
         --function trainers_count --arguments $1
+}
+
+query_contract_string_vector() {
+    mxpy contract query ${CONTRACT_ADDR} \
+        --proxy=${PROXY}\
+        --function get_string_vector
+}
+
+query_contract_get_boolean() {
+    mxpy contract query ${CONTRACT_ADDR} \
+        --proxy=${PROXY}\
+        --function get_boolean
 }
 
 query_contract_iterate_trainers() {
@@ -117,5 +151,65 @@ call_contract_set_genesis() {
         --gas-limit=${GAS_LIMIT} \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --function set_genesis_address --arguments $1 \
+        --send
+}
+
+create_wallet() {
+    mxpy wallet new --format pem --outfile "${WALLETS_DIR}${1}.pem"
+}
+
+# Tests
+
+query_is_session_active() {
+    mxpy contract query ${CONTRACT_ADDR} \
+        --proxy=${PROXY}\
+        --function is_session_active
+}
+
+query_get_active_session() {
+    mxpy contract query ${CONTRACT_ADDR} \
+        --proxy=${PROXY}\
+        --function get_active_session
+}
+
+query_is_training_open() {
+    mxpy contract query ${CONTRACT_ADDR} \
+        --proxy=${PROXY}\
+        --function is_training_open
+}
+
+query_is_signup_open() {
+    mxpy contract query ${CONTRACT_ADDR} \
+        --proxy=${PROXY}\
+        --function is_signup_open
+}
+
+query_is_aggregation_open() {
+    mxpy contract query ${CONTRACT_ADDR} \
+        --proxy=${PROXY}\
+        --function is_aggregation_open
+}
+
+query_get_proposer() {
+    mxpy contract query ${CONTRACT_ADDR} \
+        --proxy=${PROXY}\
+        --function get_proposer
+}
+
+call_start_session() {
+    mxpy contract call ${CONTRACT_ADDR} --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --gas-limit=${GAS_LIMIT} \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --function start_session --arguments $1 $2 $3 $4 \
+        --send
+}
+
+call_end_session() {
+    mxpy contract call ${CONTRACT_ADDR} --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --gas-limit=${GAS_LIMIT} \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --function end_session \
         --send
 }
