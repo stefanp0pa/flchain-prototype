@@ -243,3 +243,24 @@ call_signup() {
         --function signup --arguments $1 \
         --send
 }
+
+query_current_global_version() {
+    mxpy contract query ${CONTRACT_ADDR} \
+        --proxy=${PROXY}\
+        --function get_current_global_version
+}
+
+call_set_local_update() {
+    mxpy contract call ${CONTRACT_ADDR} --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --gas-limit=${GAS_LIMIT} \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --function set_local_update --arguments $1 \
+        --send
+}
+
+query_local_updates() {
+    mxpy contract query ${CONTRACT_ADDR} \
+        --proxy=${PROXY}\
+        --function get_local_updates
+}

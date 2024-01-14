@@ -25,6 +25,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+round = 0
 trainer_id = sys.argv[1]
 
 SC_ADDR = "erd1qqqqqqqqqqqqqpgq5fqj294099nurngdz9rzgv7du0n6h4vedttshsdl08"
@@ -45,7 +46,6 @@ trainer = Address.new_from_bech32(TRAINER_ADDR)
 signer = UserSigner.from_pem_file(Path(WALLET_DIR))
 network_provider = ApiNetworkProvider(NETWORK_PROVIDER)
 proposer_on_network = network_provider.get_account(trainer)
-round = 0
 
 print(f">>>[Trainer {trainer_id}] Loaded dataset")
 (train_images, train_labels), (test_images, test_labels) = mnist.load_data()
@@ -140,7 +140,6 @@ def on_training_round_started():
     print(f">>>[Trainer {trainer_id}] Uploading local weights to smart contract...")
     sc_upload_local_model(new_local_id)
     print(f">>>[Trainer {trainer_id}] Uploaded local weights to smart contract!")
-    round += 1
 
 
 def on_aggregating_round_started():

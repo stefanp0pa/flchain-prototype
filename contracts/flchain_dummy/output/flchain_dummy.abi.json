@@ -189,29 +189,20 @@
             "outputs": []
         },
         {
-            "name": "retrieve_client_id_by_address",
-            "mutability": "readonly",
+            "name": "set_global_version",
+            "mutability": "mutable",
             "inputs": [
                 {
-                    "name": "address",
+                    "name": "file_location",
                     "type": "bytes"
                 }
             ],
-            "outputs": [
-                {
-                    "type": "u32"
-                }
-            ]
+            "outputs": []
         },
         {
-            "name": "retrieve_address_by_client_id",
+            "name": "get_current_global_version",
             "mutability": "readonly",
-            "inputs": [
-                {
-                    "name": "client_id",
-                    "type": "u32"
-                }
-            ],
+            "inputs": [],
             "outputs": [
                 {
                     "type": "bytes"
@@ -219,7 +210,18 @@
             ]
         },
         {
-            "name": "get_string_vector",
+            "name": "set_local_update",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "file_location",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "get_local_updates",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -237,21 +239,6 @@
                     "type": "u64"
                 }
             ]
-        },
-        {
-            "name": "set_ipfs_file",
-            "mutability": "mutable",
-            "inputs": [
-                {
-                    "name": "address",
-                    "type": "bytes"
-                },
-                {
-                    "name": "client_id",
-                    "type": "u32"
-                }
-            ],
-            "outputs": []
         }
     ],
     "events": [

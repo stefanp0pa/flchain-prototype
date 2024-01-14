@@ -67,8 +67,6 @@ pub trait FlchainDummy {
         });
 
         self.active_session_proposer().set(caller);
-        // self.global_model_versions(0u32).set(global_model_addr);
-        // self.version().set(0u32);
         self.version(session_id).set(0u32);
         self.global_updates(session_id, 0u32).insert(ModelUpdate {
             user_addr: self.blockchain().get_caller(),
@@ -105,13 +103,7 @@ pub trait FlchainDummy {
             !self.active_session_manager().is_empty(),
             "Cannot signup! No training session ongoing!"
         );
-        // let curr_time = self.blockchain().get_block_timestamp();
         let session_manager = self.active_session_manager().get();
-        // require!(
-        //     session_manager.is_signup_open(curr_time),
-        //     "Cannot register! Sign-up period is over!"
-        // );
-
         let caller_addr = self.blockchain().get_caller();
         let session_id = session_manager.session_id;
         require!(
@@ -141,12 +133,26 @@ pub trait FlchainDummy {
         return count > 0;
     }
 
+    // #[endpoint]
+    // fn unsignup(&self) {
+    //     require!(
+    //         !self.active_session_manager().is_empty(),
+    //         "Cannot signup! No training session ongoing!"
+    //     );
+
+    //     let session_manager = self.active_session_manager().get();
+    //     let caller_addr = self.blockchain().get_caller();
+    //     let session_id = session_manager.session_id;     
+    // }
+
     fn clear_round_entities(&self, session_id: u64) {
         let max_version = self.version(session_id).get();
         for i in 0u32..max_version {
             self.global_updates(session_id, i).clear();
+            self.local_updates(session_id, i).clear();
         }
 
+        self.active_round(session_id).clear();
         self.version(session_id).clear();
         self.participants(session_id).clear();
         self.active_session_proposer().clear();
@@ -262,38 +268,85 @@ pub trait FlchainDummy {
         }
     }
 
+    #[endpoint]
+    fn set_global_version(&self, file_location: ManagedBuffer) {
+        require!(
+            !self.active_session_proposer().is_empty(),
+            "No training session available!"
+        );
+        let caller = self.blockchain().get_caller();
+        let session_id = self.active_session_manager().get().session_id;
+        let mut version = self.version(session_id).get();
+        version = version + 1;
+        self.global_updates(session_id, version).insert(ModelUpdate {
+            user_addr: caller,
+            file_location,
+        });
+        self.version(session_id).set(version);
+    }
+
+    #[view]
+    fn get_current_global_version(&self) -> ManagedBuffer {
+        require!(
+            !self.active_session_proposer().is_empty(),
+            "No training session available!"
+        );
+
+        let session_id = self.active_session_manager().get().session_id;
+        let version = self.version(session_id).get();
+        self.global_updates(session_id, version)
+            .iter().next().unwrap().file_location
+    }
+
+    #[endpoint]
+    fn set_local_update(&self, file_location: ManagedBuffer) {
+        require!(
+            !self.active_session_proposer().is_empty(),
+            "No training session available!"
+        );
+        let caller = self.blockchain().get_caller();
+        let session_id = self.active_session_manager().get().session_id;
+        let version = self.version(session_id).get();
+        self.local_updates(session_id, version).insert(ModelUpdate {
+            user_addr: caller,
+            file_location,
+        });
+    }
+
+    #[view]
+    fn get_local_updates(&self) -> ManagedVec<ManagedBuffer> {
+        require!(
+            !self.active_session_proposer().is_empty(),
+            "No training session available!"
+        );
+        let session_id = self.active_session_manager().get().session_id;
+        let version = self.version(session_id).get();
+        let mut result: ManagedVec<ManagedBuffer> = ManagedVec::new();
+        for update in self.local_updates(session_id, version).iter() {
+            result.push(update.file_location);
+        }
+        result
+    }
+
     // #[view]
-    // fn get_current_global_version(&self) -> ManagedBuffer {
+    // fn retrieve_client_id_by_address(&self, address: ManagedBuffer) -> u32{
     //     require!(
-    //         !self.active_session_proposer().is_empty(),
-    //         "No training session available!"
+    //         !self.client_by_ipfs_address(&address).is_empty(),
+    //         "This address has not been inserted before!"
     //     );
 
-    //     let session_id = self.active_session_manager().get().session_id;
-    //     let version = self.version(session_id).get();
-    //     self.global_model_versions(version).get()
+    //     self.client_by_ipfs_address(&address).get()
     // }
 
+    // #[view]
+    // fn retrieve_address_by_client_id(&self, client_id: u32) -> ManagedBuffer{
+    //     require!(
+    //         !self.ipfs_address_by_client(&client_id).is_empty(),
+    //         "This client id has not been inserted before!"
+    //     );
 
-    #[view]
-    fn retrieve_client_id_by_address(&self, address: ManagedBuffer) -> u32{
-        require!(
-            !self.client_by_ipfs_address(&address).is_empty(),
-            "This address has not been inserted before!"
-        );
-
-        self.client_by_ipfs_address(&address).get()
-    }
-
-    #[view]
-    fn retrieve_address_by_client_id(&self, client_id: u32) -> ManagedBuffer{
-        require!(
-            !self.ipfs_address_by_client(&client_id).is_empty(),
-            "This client id has not been inserted before!"
-        );
-
-        self.ipfs_address_by_client(&client_id).get()
-    }
+    //     self.ipfs_address_by_client(&client_id).get()
+    // }
 
     // #[endpoint]
     // fn signup_trainer(&self, job_hash: ManagedBuffer) {
@@ -307,20 +360,20 @@ pub trait FlchainDummy {
     //     self.trainers(&job_hash).swap_remove(&caller)
     // }
 
-    #[view]
-    fn get_string_vector(&self) -> ManagedVec<ManagedBuffer> {
-        let mut result: ManagedVec<ManagedBuffer> = ManagedVec::new();
-        // result.push(ManagedBuffer::from("Hello"));
-        // result.push(ManagedBuffer::from("World"));
-        // result
-        self.local_updates(10u64, 21u32).insert(ManagedBuffer::from("Helloooo"));
-        self.local_updates(10u64, 21u32).insert(ManagedBuffer::from("World"));
-        self.local_updates(10u64, 22u32).insert(ManagedBuffer::from("cococ"));
-        for update in self.local_updates(10u64, 21u32).iter() {
-            result.push(update);
-        }
-        result
-    }
+    // #[view]
+    // fn get_string_vector(&self) -> ManagedVec<ManagedBuffer> {
+    //     let mut result: ManagedVec<ManagedBuffer> = ManagedVec::new();
+    //     // result.push(ManagedBuffer::from("Hello"));
+    //     // result.push(ManagedBuffer::from("World"));
+    //     // result
+    //     self.local_updates(10u64, 21u32).insert(ManagedBuffer::from("Helloooo"));
+    //     self.local_updates(10u64, 21u32).insert(ManagedBuffer::from("World"));
+    //     self.local_updates(10u64, 22u32).insert(ManagedBuffer::from("cococ"));
+    //     for update in self.local_updates(10u64, 21u32).iter() {
+    //         result.push(update);
+    //     }
+    //     result
+    // }
 
     // #[view]
     // fn iterate_trainers(&self, job_hash: ManagedBuffer) -> ManagedBuffer {
@@ -339,11 +392,11 @@ pub trait FlchainDummy {
         self.blockchain().get_block_timestamp()
     }
 
-    #[endpoint]
-    fn set_ipfs_file(&self, address: ManagedBuffer, client_id: u32) {
-        self.client_by_ipfs_address(&address).set(client_id);
-        self.ipfs_address_by_client(&client_id).set(address.clone());
-    }
+    // #[endpoint]
+    // fn set_ipfs_file(&self, address: ManagedBuffer, client_id: u32) {
+    //     self.client_by_ipfs_address(&address).set(client_id);
+    //     self.ipfs_address_by_client(&client_id).set(address.clone());
+    // }
 
     // #[endpoint]
     // fn set_genesis_address(&self, address: ManagedBuffer) {
@@ -420,8 +473,6 @@ pub trait FlchainDummy {
 
     // ----------------------------------------------------
 
-    // #[storage_mapper("trainers")]
-    // fn trainers(&self, session_id: &u32) -> UnorderedSetMapper<ManagedAddress[]>;
     #[storage_mapper("active_session_manager")]
     fn active_session_manager(&self) -> SingleValueMapper<SessionManager>;
 
@@ -430,11 +481,6 @@ pub trait FlchainDummy {
 
     #[storage_mapper("active_round")]
     fn active_round(&self, sessiond_id: u64) -> SingleValueMapper<u8>;
-
-    // #[storage_mapper("global_model_versions")]
-    // fn global_model_versions(&self, version: u32) -> SingleValueMapper<ManagedBuffer>;
-
-    
 
     // -----------------------------------------------
 
@@ -448,7 +494,7 @@ pub trait FlchainDummy {
     // -----------------------------------------------
 
     #[storage_mapper("local_updates")]
-    fn local_updates(&self, session_id: u64, version: u32) -> UnorderedSetMapper<ManagedBuffer>;
+    fn local_updates(&self, session_id: u64, version: u32) -> UnorderedSetMapper<ModelUpdate<Self::Api, Self::Api>>;
 
     #[storage_mapper("global_updates")]
     fn global_updates(&self, session_id: u64, version: u32) -> UnorderedSetMapper<ModelUpdate<Self::Api, Self::Api>>;
@@ -456,21 +502,19 @@ pub trait FlchainDummy {
     #[storage_mapper("version")]
     fn version(&self, session_id: u64) -> SingleValueMapper<u32>;
 
+    // #[storage_mapper("trainers")]
+    // fn trainers(&self, job_hash: &ManagedBuffer) -> UnorderedSetMapper<ManagedAddress>;
 
-
-    #[storage_mapper("trainers")]
-    fn trainers(&self, job_hash: &ManagedBuffer) -> UnorderedSetMapper<ManagedAddress>;
-
-    #[storage_mapper("caller_storage")]
-    fn caller_storage(&self) -> SingleValueMapper<ManagedAddress>;
+    // #[storage_mapper("caller_storage")]
+    // fn caller_storage(&self) -> SingleValueMapper<ManagedAddress>;
 
     
 
     
 
-    #[storage_mapper("client_by_ipfs_address")]
-    fn client_by_ipfs_address(&self, address: &ManagedBuffer) -> SingleValueMapper<u32>;
+    // #[storage_mapper("client_by_ipfs_address")]
+    // fn client_by_ipfs_address(&self, address: &ManagedBuffer) -> SingleValueMapper<u32>;
 
-    #[storage_mapper("ipfs_address_by_client")]
-    fn ipfs_address_by_client(&self, client_id: &u32) -> SingleValueMapper<ManagedBuffer>;
+    // #[storage_mapper("ipfs_address_by_client")]
+    // fn ipfs_address_by_client(&self, client_id: &u32) -> SingleValueMapper<ManagedBuffer>;
 }   

@@ -9,6 +9,8 @@
 # VSCode specific files
 .vscode
 
+models/*
+
 # The mxpy output
 **/output/**
 **/*.interaction.json
