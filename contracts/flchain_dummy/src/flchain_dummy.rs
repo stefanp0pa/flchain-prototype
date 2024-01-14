@@ -79,6 +79,8 @@ pub trait FlchainDummy {
             role: Role::Proposer,
         });
 
+        self.active_round(session_id).set(1u8);
+
         self.session_started_event(session_id, now, rounds_signup, rounds_training, rounds_aggregation);
         self.new_signup_event(session_id, self.blockchain().get_caller(), Role::Proposer);
     }
@@ -243,6 +245,23 @@ pub trait FlchainDummy {
         self.active_session_proposer().get()
     }
 
+    #[view]
+    fn get_active_round(&self, session_id: u64) -> u8 {
+        self.active_round(session_id).get()
+    }
+
+    #[endpoint]
+    fn set_active_round(&self, session_id: u64, round: u8) {
+        self.active_round(session_id).set(round);
+        if round == 1u8 {
+            self.signup_started_event(session_id);
+        } else if round == 2u8 {
+            self.training_started_event(session_id);
+        } else if round == 3u8 {
+            self.aggregation_started_event(session_id);
+        }
+    }
+
     // #[view]
     // fn get_current_global_version(&self) -> ManagedBuffer {
     //     require!(
@@ -381,6 +400,24 @@ pub trait FlchainDummy {
         #[indexed] role: Role,
     );
 
+    #[event("signup_started_event")]
+    fn signup_started_event(
+        &self,
+        #[indexed] session_id: u64
+    );
+
+    #[event("training_started_event")]
+    fn training_started_event(
+        &self,
+        #[indexed] session_id: u64
+    );
+
+    #[event("aggregation_started_event")]
+    fn aggregation_started_event(
+        &self,
+        #[indexed] session_id: u64
+    );
+
     // ----------------------------------------------------
 
     // #[storage_mapper("trainers")]
@@ -390,6 +427,9 @@ pub trait FlchainDummy {
 
     #[storage_mapper("active_session_proposer")]
     fn active_session_proposer(&self) -> SingleValueMapper<ManagedAddress>;
+
+    #[storage_mapper("active_round")]
+    fn active_round(&self, sessiond_id: u64) -> SingleValueMapper<u8>;
 
     // #[storage_mapper("global_model_versions")]
     // fn global_model_versions(&self, version: u32) -> SingleValueMapper<ManagedBuffer>;

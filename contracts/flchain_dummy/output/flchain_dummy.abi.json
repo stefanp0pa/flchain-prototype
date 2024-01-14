@@ -16,9 +16,6 @@
             "version": "0.45.2"
         }
     },
-    "docs": [
-        "An empty contract. To be used as a template when starting a new contract from scratch."
-    ],
     "name": "FlchainDummy",
     "constructor": {
         "inputs": [],
@@ -162,14 +159,34 @@
             ]
         },
         {
-            "name": "get_current_global_version",
+            "name": "get_active_round",
             "mutability": "readonly",
-            "inputs": [],
+            "inputs": [
+                {
+                    "name": "session_id",
+                    "type": "u64"
+                }
+            ],
             "outputs": [
                 {
-                    "type": "bytes"
+                    "type": "u8"
                 }
             ]
+        },
+        {
+            "name": "set_active_round",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "session_id",
+                    "type": "u64"
+                },
+                {
+                    "name": "round",
+                    "type": "u8"
+                }
+            ],
+            "outputs": []
         },
         {
             "name": "retrieve_client_id_by_address",
@@ -299,6 +316,36 @@
                 {
                     "name": "role",
                     "type": "Role",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "signup_started_event",
+            "inputs": [
+                {
+                    "name": "session_id",
+                    "type": "u64",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "training_started_event",
+            "inputs": [
+                {
+                    "name": "session_id",
+                    "type": "u64",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "aggregation_started_event",
+            "inputs": [
+                {
+                    "name": "session_id",
+                    "type": "u64",
                     "indexed": true
                 }
             ]

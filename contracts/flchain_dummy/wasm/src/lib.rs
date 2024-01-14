@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           18
+// Endpoints:                           19
 // Async Callback (empty):               1
-// Total number of exported functions:  20
+// Total number of exported functions:  21
 
 #![no_std]
 #![allow(internal_features)]
@@ -32,7 +32,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         is_training_open => is_training_open
         is_aggregation_open => is_aggregation_open
         get_session_proposer => get_session_proposer
-        get_current_global_version => get_current_global_version
+        get_active_round => get_active_round
+        set_active_round => set_active_round
         retrieve_client_id_by_address => retrieve_client_id_by_address
         retrieve_address_by_client_id => retrieve_address_by_client_id
         get_string_vector => get_string_vector

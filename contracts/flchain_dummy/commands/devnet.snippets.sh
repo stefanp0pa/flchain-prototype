@@ -202,6 +202,21 @@ query_trainers_count() {
         --function trainers_count --arguments $1
 }
 
+query_active_round() {
+    mxpy contract query ${CONTRACT_ADDR} \
+        --proxy=${PROXY}\
+        --function get_active_round --arguments $1
+}
+
+call_set_active_round() {
+    mxpy contract call ${CONTRACT_ADDR} --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --gas-limit=${GAS_LIMIT} \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --function set_active_round --arguments $1 $2 \
+        --send
+}
+
 call_start_session() {
     mxpy contract call ${CONTRACT_ADDR} --recall-nonce \
         --pem=${WALLET_PEM} \
