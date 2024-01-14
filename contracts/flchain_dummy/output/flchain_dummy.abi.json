@@ -61,6 +61,47 @@
             "outputs": []
         },
         {
+            "name": "signup",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "role",
+                    "type": "u8"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "trainers_count",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "session_id",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "name": "aggregators_count",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "session_id",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
             "name": "is_session_active",
             "mutability": "readonly",
             "inputs": [],
@@ -111,12 +152,22 @@
             ]
         },
         {
-            "name": "get_proposer",
+            "name": "get_session_proposer",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
                 {
                     "type": "Address"
+                }
+            ]
+        },
+        {
+            "name": "get_current_global_version",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bytes"
                 }
             ]
         },
@@ -147,47 +198,6 @@
             "outputs": [
                 {
                     "type": "bytes"
-                }
-            ]
-        },
-        {
-            "name": "signup_trainer",
-            "mutability": "mutable",
-            "inputs": [
-                {
-                    "name": "job_hash",
-                    "type": "bytes"
-                }
-            ],
-            "outputs": []
-        },
-        {
-            "name": "remove_trainer",
-            "mutability": "mutable",
-            "inputs": [
-                {
-                    "name": "job_hash",
-                    "type": "bytes"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "bool"
-                }
-            ]
-        },
-        {
-            "name": "trainers_count",
-            "mutability": "readonly",
-            "inputs": [
-                {
-                    "name": "job_hash",
-                    "type": "bytes"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "u32"
                 }
             ]
         },

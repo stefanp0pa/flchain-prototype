@@ -196,6 +196,12 @@ query_get_proposer() {
         --function get_proposer
 }
 
+query_trainers_count() {
+    mxpy contract query ${CONTRACT_ADDR} \
+        --proxy=${PROXY}\
+        --function trainers_count --arguments $1
+}
+
 call_start_session() {
     mxpy contract call ${CONTRACT_ADDR} --recall-nonce \
         --pem=${WALLET_PEM} \
@@ -211,5 +217,14 @@ call_end_session() {
         --gas-limit=${GAS_LIMIT} \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --function end_session \
+        --send
+}
+
+call_signup() {
+    mxpy contract call ${CONTRACT_ADDR} --recall-nonce \
+        --pem=${SECUNDUS_WALLET} \
+        --gas-limit=${GAS_LIMIT} \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --function signup --arguments $1 \
         --send
 }

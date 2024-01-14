@@ -6,4 +6,6 @@
 # The mxpy output
 /output*/
 
+**/.env
+
 deploy-devnet.interaction.json

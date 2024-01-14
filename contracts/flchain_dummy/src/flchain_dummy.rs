@@ -11,17 +11,23 @@ use participant_role::Role;
 use session_manager::SessionManager;
 
 const ROUND_SECONDS: u64 = 6;
-const ROUNDS_FOR_SIGNUP: u64 = 6;
-const ROUNDS_FOR_TRAINING: u64 = 5;
-const ROUNDS_FOR_AGGREGATION: u64 = 2;
+// const ROUNDS_FOR_SIGNUP: u64 = 6;
+// const ROUNDS_FOR_TRAINING: u64 = 5;
+// const ROUNDS_FOR_AGGREGATION: u64 = 2;
 
 #[derive(NestedEncode, NestedDecode, TopEncode, TopDecode, TypeAbi)]
-struct Participant {
-    user: User,
+pub struct Participant<M: ManagedTypeApi> {
+    user_addr: ManagedAddress<M>,
     role: Role
 }
 
-/// An empty contract. To be used as a template when starting a new contract from scratch.
+#[derive(NestedEncode, NestedDecode, TopEncode, TopDecode, TypeAbi)]
+pub struct ModelUpdate<M: ManagedTypeApi, N: ManagedTypeApi> {
+    user_addr: ManagedAddress<M>,
+    file_location: ManagedBuffer<N>
+}
+
+
 #[multiversx_sc::contract]
 pub trait FlchainDummy {
 
@@ -61,10 +67,20 @@ pub trait FlchainDummy {
         });
 
         self.active_session_proposer().set(caller);
-        self.global_model_versions(0u32).insert(global_model_addr);
-        self.version().set(0u32);
+        // self.global_model_versions(0u32).set(global_model_addr);
+        // self.version().set(0u32);
+        self.version(session_id).set(0u32);
+        self.global_updates(session_id, 0u32).insert(ModelUpdate {
+            user_addr: self.blockchain().get_caller(),
+            file_location: global_model_addr,
+        });
+        self.participants(session_id).insert(Participant {
+            user_addr: self.blockchain().get_caller(),
+            role: Role::Proposer,
+        });
 
         self.session_started_event(session_id, now, rounds_signup, rounds_training, rounds_aggregation);
+        self.new_signup_event(session_id, self.blockchain().get_caller(), Role::Proposer);
     }
 
     #[endpoint]
@@ -77,19 +93,94 @@ pub trait FlchainDummy {
         let curr_time = self.blockchain().get_block_timestamp();
         let session_id = self.active_session_manager().get().session_id;
 
-        self.clear_round_entities();
+        self.clear_round_entities(session_id);
         self.session_ended_event(session_id, curr_time);
     }
 
-    fn clear_round_entities(&self) {
-        let max_version = self.version().get();
+    #[endpoint]
+    fn signup(&self, role: u8) {
+        require!(
+            !self.active_session_manager().is_empty(),
+            "Cannot signup! No training session ongoing!"
+        );
+        // let curr_time = self.blockchain().get_block_timestamp();
+        let session_manager = self.active_session_manager().get();
+        // require!(
+        //     session_manager.is_signup_open(curr_time),
+        //     "Cannot register! Sign-up period is over!"
+        // );
+
+        let caller_addr = self.blockchain().get_caller();
+        let session_id = session_manager.session_id;
+        require!(
+            !self.has_signed_up(caller_addr, session_id),
+            "Cannot signup! Already signed up!"
+        );
+        
+        self.participants(session_id).insert(Participant {
+            user_addr: self.blockchain().get_caller(),
+            role: Role::match_role(role).unwrap(),
+        });
+
+        self.new_signup_event(
+            session_id,
+            self.blockchain().get_caller(),
+            Role::match_role(role).unwrap());
+    }
+
+    fn has_signed_up(&self, caller_addr: ManagedAddress, session_id: u64) -> bool {
+        let session_participants = self.participants(session_id);
+        let count = session_participants
+                        .iter()
+                        .filter(|participant| {
+                            (*participant).user_addr == caller_addr
+                        })
+                        .count();
+        return count > 0;
+    }
+
+    fn clear_round_entities(&self, session_id: u64) {
+        let max_version = self.version(session_id).get();
         for i in 0u32..max_version {
-            self.global_model_versions(i).clear();
+            self.global_updates(session_id, i).clear();
         }
 
-        self.version().clear();
+        self.version(session_id).clear();
+        self.participants(session_id).clear();
         self.active_session_proposer().clear();
         self.active_session_manager().clear();
+    }
+
+    #[view]
+    fn trainers_count(&self, session_id: u64) -> usize {
+        require!(
+            !self.participants(session_id).is_empty(),
+            "No participants in this session!"
+        );
+        
+        let session_participants = self.participants(session_id);
+        session_participants
+                        .iter()
+                        .filter(|participant| {
+                            (*participant).role.can_train()
+                        })
+                        .count()
+    }
+
+    #[view]
+    fn aggregators_count(&self, session_id: u64) -> usize {
+        require!(
+            !self.participants(session_id).is_empty(),
+            "No participants in this session!"
+        );
+        
+        let session_participants = self.participants(session_id);
+        session_participants
+                        .iter()
+                        .filter(|participant| {
+                            (*participant).role.can_upgate_global()
+                        })
+                        .count()
     }
 
     #[view]
@@ -143,7 +234,7 @@ pub trait FlchainDummy {
     }
 
     #[view]
-    fn get_proposer(&self) -> ManagedAddress {
+    fn get_session_proposer(&self) -> ManagedAddress {
         require!(
             !self.active_session_proposer().is_empty(),
             "No training session available!"
@@ -151,6 +242,18 @@ pub trait FlchainDummy {
 
         self.active_session_proposer().get()
     }
+
+    // #[view]
+    // fn get_current_global_version(&self) -> ManagedBuffer {
+    //     require!(
+    //         !self.active_session_proposer().is_empty(),
+    //         "No training session available!"
+    //     );
+
+    //     let session_id = self.active_session_manager().get().session_id;
+    //     let version = self.version(session_id).get();
+    //     self.global_model_versions(version).get()
+    // }
 
 
     #[view]
@@ -173,28 +276,30 @@ pub trait FlchainDummy {
         self.ipfs_address_by_client(&client_id).get()
     }
 
-    #[endpoint]
-    fn signup_trainer(&self, job_hash: ManagedBuffer) {
-        let caller = self.blockchain().get_caller();
-        self.trainers(&job_hash).insert(caller);
-    }
+    // #[endpoint]
+    // fn signup_trainer(&self, job_hash: ManagedBuffer) {
+    //     let caller = self.blockchain().get_caller();
+    //     self.trainers(&job_hash).insert(caller);
+    // }
 
-    #[endpoint]
-    fn remove_trainer(&self, job_hash: ManagedBuffer) -> bool {
-        let caller = self.blockchain().get_caller();
-        self.trainers(&job_hash).swap_remove(&caller)
-    }
-
-    #[view]
-    fn trainers_count(&self, job_hash: ManagedBuffer) -> usize {
-        self.trainers(&job_hash).len()
-    }
+    // #[endpoint]
+    // fn remove_trainer(&self, job_hash: ManagedBuffer) -> bool {
+    //     let caller = self.blockchain().get_caller();
+    //     self.trainers(&job_hash).swap_remove(&caller)
+    // }
 
     #[view]
     fn get_string_vector(&self) -> ManagedVec<ManagedBuffer> {
         let mut result: ManagedVec<ManagedBuffer> = ManagedVec::new();
-        result.push(ManagedBuffer::from("Hello"));
-        result.push(ManagedBuffer::from("World"));
+        // result.push(ManagedBuffer::from("Hello"));
+        // result.push(ManagedBuffer::from("World"));
+        // result
+        self.local_updates(10u64, 21u32).insert(ManagedBuffer::from("Helloooo"));
+        self.local_updates(10u64, 21u32).insert(ManagedBuffer::from("World"));
+        self.local_updates(10u64, 22u32).insert(ManagedBuffer::from("cococ"));
+        for update in self.local_updates(10u64, 21u32).iter() {
+            result.push(update);
+        }
         result
     }
 
@@ -286,11 +391,10 @@ pub trait FlchainDummy {
     #[storage_mapper("active_session_proposer")]
     fn active_session_proposer(&self) -> SingleValueMapper<ManagedAddress>;
 
-    #[storage_mapper("global_model_versions")]
-    fn global_model_versions(&self, version: u32) -> UnorderedSetMapper<ManagedBuffer>;
+    // #[storage_mapper("global_model_versions")]
+    // fn global_model_versions(&self, version: u32) -> SingleValueMapper<ManagedBuffer>;
 
-    #[storage_mapper("version")]
-    fn version(&self) -> SingleValueMapper<u32>;
+    
 
     // -----------------------------------------------
 
@@ -299,12 +403,21 @@ pub trait FlchainDummy {
     fn users(&self, address: ManagedAddress) -> UnorderedSetMapper<User>;
 
     #[storage_mapper("participants")]
-    fn participants(&self, session_id: u64) -> UnorderedSetMapper<Participant>;
+    fn participants(&self, session_id: u64) -> UnorderedSetMapper<Participant<Self::Api>>;
 
     // -----------------------------------------------
 
+    #[storage_mapper("local_updates")]
+    fn local_updates(&self, session_id: u64, version: u32) -> UnorderedSetMapper<ManagedBuffer>;
 
-    
+    #[storage_mapper("global_updates")]
+    fn global_updates(&self, session_id: u64, version: u32) -> UnorderedSetMapper<ModelUpdate<Self::Api, Self::Api>>;
+
+    #[storage_mapper("version")]
+    fn version(&self, session_id: u64) -> SingleValueMapper<u32>;
+
+
+
     #[storage_mapper("trainers")]
     fn trainers(&self, job_hash: &ManagedBuffer) -> UnorderedSetMapper<ManagedAddress>;
 
