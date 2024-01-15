@@ -17,7 +17,7 @@ from multiversx_sdk_network_providers import ApiNetworkProvider
 from multiversx_sdk_core import AccountNonceHolder
 
 SC_ADDR = "erd1qqqqqqqqqqqqqpgq5fqj294099nurngdz9rzgv7du0n6h4vedttshsdl08"
-WALLET_DIR = "/Users/stefan/ssi-proiect/initiator/initiator.pem"
+WALLET_DIR = "/Users/stefan/ssi-proiect/participants/initiator/initiator.pem"
 INITIATOR_ADDR = "erd1rrpflqfed0dvc0yptw4lurxf2cjnfvvlavlg26rq7cvcp36tyfvsu3hr8d"
 NETWORK_PROVIDER = "https://devnet-api.multiversx.com"
 SC_START_SESSION = "start_session"

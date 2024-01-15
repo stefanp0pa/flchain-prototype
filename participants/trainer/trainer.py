@@ -30,7 +30,7 @@ round = 0
 trainer_id = sys.argv[1]
 
 SC_ADDR = "erd1qqqqqqqqqqqqqpgq5fqj294099nurngdz9rzgv7du0n6h4vedttshsdl08"
-WALLET_DIR = f"/Users/stefan/ssi-proiect/trainer/trainer{trainer_id}.pem"
+WALLET_DIR = f"/Users/stefan/ssi-proiect/participants/trainer/trainer{trainer_id}.pem"
 TRAINER_ADDR = "erd1fjt6fcxlh89d3jf49kzu7793snlhvptk6fz2kh5g8p8x9jd9lxnskmxxn9"
 NETWORK_PROVIDER = "https://devnet-api.multiversx.com"
 SC_SIGNUP = "signup"

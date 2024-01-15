@@ -27,7 +27,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 SC_ADDR = "erd1qqqqqqqqqqqqqpgq5fqj294099nurngdz9rzgv7du0n6h4vedttshsdl08"
-WALLET_DIR = f"/Users/stefan/ssi-proiect/evaluator/evaluator.pem"
+WALLET_DIR = f"/Users/stefan/ssi-proiect/participants/evaluator/evaluator.pem"
 EVALUATOR_ADDR = "erd1kjq8ehzy6xcsahyaw64lk5t7uhfqfn3a27udzqzgaulzw2dasaxqp82j5d"
 NETWORK_PROVIDER = "https://devnet-api.multiversx.com"
 SC_CURRENT_GLOBAL="get_current_global_version"

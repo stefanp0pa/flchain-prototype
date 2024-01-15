@@ -30,7 +30,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 SC_ADDR = "erd1qqqqqqqqqqqqqpgq5fqj294099nurngdz9rzgv7du0n6h4vedttshsdl08"
-WALLET_DIR = "/Users/stefan/ssi-proiect/aggregator/aggregator.pem"
+WALLET_DIR = "/Users/stefan/ssi-proiect/participants/aggregator/aggregator.pem"
 TRAINER_ADDR = "erd1shvhh4rukxth6vf4fcpa9p8t54y7jxqdtfg8x0zs9hhesqzdm7ysa9g6t7"
 NETWORK_PROVIDER = "https://devnet-api.multiversx.com"
 SC_DOWNLOAD_LOCAL = "get_local_updates"
