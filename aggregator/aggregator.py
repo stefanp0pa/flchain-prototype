@@ -17,6 +17,7 @@ import numpy as np
 import os
 import sys
 import pika
+import time
 import pickle
 import subprocess
 import json
@@ -35,8 +36,10 @@ NETWORK_PROVIDER = "https://devnet-api.multiversx.com"
 SC_DOWNLOAD_LOCAL = "get_local_updates"
 SC_NEW_GLOBAL = "set_global_version"
 SC_CURRENT_GLOBAL="get_current_global_version"
+SC_SET_ACTIVE_ROUND="set_active_round"
 GAS_LIMIT = 60000000
 MODELS_DIR = '/Users/stefan/ssi-proiect/models/'
+NEXT_ROUND = 4
 
 config = TransactionsFactoryConfig(chain_id="D")
 transaction_computer = TransactionComputer()
@@ -45,7 +48,6 @@ contract_address = Address.from_bech32(SC_ADDR)
 aggregator = Address.new_from_bech32(TRAINER_ADDR)
 signer = UserSigner.from_pem_file(Path(WALLET_DIR))
 network_provider = ApiNetworkProvider(NETWORK_PROVIDER)
-proposer_on_network = network_provider.get_account(aggregator)
 
 def upload_weights_ipfs(weights, directory, filename):
     upload_file = os.path.join(directory, filename)
@@ -67,9 +69,30 @@ def download_weights_ipfs(file_id, directory, filename):
         weights = pickle.load(file)
     return weights
 
+
+def sc_start_next_round():
+    nonce_holder = AccountNonceHolder(network_provider.get_account(aggregator).nonce)
+    print(f'>>>[Aggregator] Current nonce: {network_provider.get_account(aggregator).nonce}')
+    call_transaction = sc_factory.create_transaction_for_execute(
+        sender=aggregator,
+        contract=contract_address,
+        function=SC_SET_ACTIVE_ROUND,
+        gas_limit=GAS_LIMIT,
+        arguments=[NEXT_ROUND]
+    )
+    call_transaction.nonce = nonce_holder.get_nonce_then_increment()
+    call_transaction.signature = signer.sign(transaction_computer.compute_bytes_for_signing(call_transaction))
+
+    print(f">>>[Aggregator] Transaction:", call_transaction.__dict__)
+    print(f">>>[Aggregator] Transaction data:", call_transaction.data)
+    
+    response = network_provider.send_transaction(call_transaction)
+    print(response)
+
+
 def sc_set_global_model(file_id):
-    nonce_holder = AccountNonceHolder(proposer_on_network.nonce)
-    print(f'>>>[Proposer] Current nonce: {proposer_on_network.nonce}')
+    nonce_holder = AccountNonceHolder(network_provider.get_account(aggregator).nonce)
+    print(f'>>>[Aggregator] Current nonce: {network_provider.get_account(aggregator).nonce}')
     call_transaction = sc_factory.create_transaction_for_execute(
         sender=aggregator,
         contract=contract_address,
@@ -80,8 +103,8 @@ def sc_set_global_model(file_id):
     call_transaction.nonce = nonce_holder.get_nonce_then_increment()
     call_transaction.signature = signer.sign(transaction_computer.compute_bytes_for_signing(call_transaction))
 
-    print(">>>[Proposer] Transaction:", call_transaction.__dict__)
-    print(">>>[Proposer] Transaction data:", call_transaction.data)
+    print(">>>[Aggregator] Transaction:", call_transaction.__dict__)
+    print(">>>[Aggregator] Transaction data:", call_transaction.data)
     
     response = network_provider.send_transaction(call_transaction)
     print(response)
@@ -132,6 +155,10 @@ def on_aggregating_round_started():
     avg_weights = [weight / len(local_updates_ids) for weight in avg_weights]
     new_global_id = upload_weights_ipfs(avg_weights, MODELS_DIR, f'new_global_weights.pkl')
     sc_set_global_model(new_global_id)
+    print(f">>>[Aggregator] New global model ID: {new_global_id}")
+    print(f">>>[Aggregator] Starting the next round, but sleep 5 seconds...")
+    time.sleep(5)
+    sc_start_next_round()
     
 
 def process_blockchain_event(channel, method, properties, body):
@@ -144,7 +171,8 @@ def process_blockchain_event(channel, method, properties, body):
         "set_active_round",
         "signup_started_event",
         "training_started_event",
-        "aggregation_started_event"]
+        "aggregation_started_event",
+        "evaluation_started_event"]
 
     for event in just_events:
         if event['identifier'] in possible_events:

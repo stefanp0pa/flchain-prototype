@@ -213,7 +213,7 @@ call_set_active_round() {
         --pem=${WALLET_PEM} \
         --gas-limit=${GAS_LIMIT} \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
-        --function set_active_round --arguments $1 $2 \
+        --function set_active_round --arguments $1 \
         --send
 }
 

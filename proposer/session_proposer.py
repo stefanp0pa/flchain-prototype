@@ -1,6 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras import layers, models
 import os
+import time
 import pickle
 import subprocess
 
@@ -20,10 +21,12 @@ WALLET_DIR = "/Users/stefan/ssi-proiect/proposer/proposer.pem"
 PROPOSER_ADDR = "erd1rrpflqfed0dvc0yptw4lurxf2cjnfvvlavlg26rq7cvcp36tyfvsu3hr8d"
 NETWORK_PROVIDER = "https://devnet-api.multiversx.com"
 SC_START_SESSION = "start_session"
+SC_SET_ACTIVE_ROUND="set_active_round"
 GAS_LIMIT = 60000000
 MODELS_DIR = '/Users/stefan/ssi-proiect/models/'
 GLOBAL_MODEL_FILE = 'global_model.pkl'
 FULL_FILENAME = MODELS_DIR + GLOBAL_MODEL_FILE
+NEXT_ROUND = 2
 
 config = TransactionsFactoryConfig(chain_id="D")
 transaction_computer = TransactionComputer()
@@ -32,11 +35,31 @@ contract_address = Address.from_bech32(SC_ADDR)
 proposer = Address.new_from_bech32(PROPOSER_ADDR)
 signer = UserSigner.from_pem_file(Path(WALLET_DIR))
 network_provider = ApiNetworkProvider(NETWORK_PROVIDER)
-proposer_on_network = network_provider.get_account(proposer)
+
+
+def sc_start_next_round():
+    nonce_holder = AccountNonceHolder(network_provider.get_account(proposer).nonce)
+    print(f'>>>[Proposer] Current nonce: {network_provider.get_account(proposer).nonce}')
+    call_transaction = sc_factory.create_transaction_for_execute(
+        sender=proposer,
+        contract=contract_address,
+        function=SC_SET_ACTIVE_ROUND,
+        gas_limit=GAS_LIMIT,
+        arguments=[NEXT_ROUND]
+    )
+    call_transaction.nonce = nonce_holder.get_nonce_then_increment()
+    call_transaction.signature = signer.sign(transaction_computer.compute_bytes_for_signing(call_transaction))
+
+    print(">>>[Proposer] Transaction:", call_transaction.__dict__)
+    print(">>>[Proposer] Transaction data:", call_transaction.data)
+    
+    response = network_provider.send_transaction(call_transaction)
+    print(response)
+
 
 def sc_start_session(file_id):
-    nonce_holder = AccountNonceHolder(proposer_on_network.nonce)
-    print(f'>>>[Proposer] Current nonce: {proposer_on_network.nonce}')
+    nonce_holder = AccountNonceHolder(network_provider.get_account(proposer).nonce)
+    print(f'>>>[Proposer] Current nonce: {network_provider.get_account(proposer).nonce}')
     call_transaction = sc_factory.create_transaction_for_execute(
         sender=proposer,
         contract=contract_address,
@@ -83,3 +106,6 @@ print(f">>>[Proposer] Global model uploaded to IPFS")
 sc_start_session(file_id)
 
 print(">>>[Proposer] Session started successfully!")
+
+time.sleep(5)
+sc_start_next_round()

@@ -178,10 +178,6 @@
             "mutability": "mutable",
             "inputs": [
                 {
-                    "name": "session_id",
-                    "type": "u64"
-                },
-                {
                     "name": "round",
                     "type": "u8"
                 }

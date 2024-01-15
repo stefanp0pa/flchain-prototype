@@ -246,7 +246,13 @@ pub trait FlchainDummy {
     }
 
     #[endpoint]
-    fn set_active_round(&self, session_id: u64, round: u8) {
+    fn set_active_round(&self, round: u8) {
+        require!(
+            !self.active_session_manager().is_empty(),
+            "No training session available!"
+        );
+
+        let session_id = self.active_session_manager().get().session_id;
         self.active_round(session_id).set(round);
         if round == 1u8 {
             self.signup_started_event(session_id);

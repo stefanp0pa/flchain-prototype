@@ -14,6 +14,7 @@ from multiversx_sdk_network_providers import ApiNetworkProvider
 from multiversx_sdk_core import AccountNonceHolder
 import tensorflow as tf
 import os
+import time
 import sys
 import pika
 import pickle
@@ -33,10 +34,12 @@ WALLET_DIR = f"/Users/stefan/ssi-proiect/trainer/trainer{trainer_id}.pem"
 TRAINER_ADDR = "erd1fjt6fcxlh89d3jf49kzu7793snlhvptk6fz2kh5g8p8x9jd9lxnskmxxn9"
 NETWORK_PROVIDER = "https://devnet-api.multiversx.com"
 SC_SIGNUP = "signup"
+SC_SET_ACTIVE_ROUND="set_active_round"
 SC_CURRENT_GLOBAL="get_current_global_version"
 SC_UPLOAD_LOCAL="set_local_update"
 GAS_LIMIT = 60000000
 MODELS_DIR = '/Users/stefan/ssi-proiect/models/'
+NEXT_ROUND = 3
 
 config = TransactionsFactoryConfig(chain_id="D")
 transaction_computer = TransactionComputer()
@@ -45,7 +48,7 @@ contract_address = Address.from_bech32(SC_ADDR)
 trainer = Address.new_from_bech32(TRAINER_ADDR)
 signer = UserSigner.from_pem_file(Path(WALLET_DIR))
 network_provider = ApiNetworkProvider(NETWORK_PROVIDER)
-proposer_on_network = network_provider.get_account(trainer)
+trainer_on_network = network_provider.get_account(trainer)
 
 print(f">>>[Trainer {trainer_id}] Loaded dataset")
 (train_images, train_labels), (test_images, test_labels) = mnist.load_data()
@@ -64,6 +67,26 @@ global_model.add(layers.Flatten())
 global_model.add(layers.Dense(10, activation='softmax'))
 global_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
+def sc_start_next_round():
+    nonce_holder = AccountNonceHolder(network_provider.get_account(trainer).nonce)
+    print(f'>>>[Trainer {trainer_id}] Current nonce: {network_provider.get_account(trainer).nonce}')
+    call_transaction = sc_factory.create_transaction_for_execute(
+        sender=trainer,
+        contract=contract_address,
+        function=SC_SET_ACTIVE_ROUND,
+        gas_limit=GAS_LIMIT,
+        arguments=[NEXT_ROUND]
+    )
+    call_transaction.nonce = nonce_holder.get_nonce_then_increment()
+    call_transaction.signature = signer.sign(transaction_computer.compute_bytes_for_signing(call_transaction))
+
+    print(f">>>[Trainer {trainer_id}] Transaction:", call_transaction.__dict__)
+    print(f">>>[Trainer {trainer_id}] Transaction data:", call_transaction.data)
+    
+    response = network_provider.send_transaction(call_transaction)
+    print(response)
+
+
 def sc_current_global_model():
     builder = ContractQueryBuilder(
         contract=contract_address,
@@ -73,12 +96,12 @@ def sc_current_global_model():
     )
     query = builder.build()
     response = network_provider.query_contract(query)
-    return base64.b64decode(response.return_data[0]).decode('utf-8')
+    return base64.b64decode(response.return_data[0]).decode('utf-8').rstrip('\x00')
 
 
 def sc_upload_local_model(file_id):
-    nonce_holder = AccountNonceHolder(proposer_on_network.nonce)
-    print(f'>>>[Trainer {trainer_id}] Current nonce: {proposer_on_network.nonce}')
+    nonce_holder = AccountNonceHolder(network_provider.get_account(trainer).nonce)
+    print(f'>>>[Trainer {trainer_id}] Current nonce: {network_provider.get_account(trainer).nonce}')
     call_transaction = sc_factory.create_transaction_for_execute(
         sender=trainer,
         contract=contract_address,
@@ -140,11 +163,9 @@ def on_training_round_started():
     print(f">>>[Trainer {trainer_id}] Uploading local weights to smart contract...")
     sc_upload_local_model(new_local_id)
     print(f">>>[Trainer {trainer_id}] Uploaded local weights to smart contract!")
-
-
-def on_aggregating_round_started():
-    print(f">>>[Trainer {trainer_id}] Aggregating round started!")
-
+    print(f">>>[Trainer {trainer_id}] Starting the next round, but sleep 5 seconds...")
+    time.sleep(5)
+    sc_start_next_round()
 
 def on_session_ended():
     print(f">>>[Trainer {trainer_id}] Session ended!")
@@ -159,13 +180,14 @@ def process_blockchain_event(channel, method, properties, body):
         "set_active_round",
         "signup_started_event",
         "training_started_event",
-        "aggregation_started_event"]
+        "aggregation_started_event",
+        "evaluation_started_event"]
 
     for event in just_events:
         if event['identifier'] in possible_events:
             print(event['identifier'])
             identifier = event['identifier']
-            topic = base64.b64decode(event['topics'][0]).decode('utf-8')
+            topic = base64.b64decode(event['topics'][0]).decode('utf-8').rstrip('\x00')
             print(f"Received event {identifier}-{topic}")
             if (identifier == "set_active_round"):
                 if (topic == "training_started_event"):
