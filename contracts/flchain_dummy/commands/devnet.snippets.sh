@@ -190,10 +190,10 @@ query_is_aggregation_open() {
         --function is_aggregation_open
 }
 
-query_get_proposer() {
+query_get_initiator() {
     mxpy contract query ${CONTRACT_ADDR} \
         --proxy=${PROXY}\
-        --function get_proposer
+        --function get_initiator
 }
 
 query_trainers_count() {

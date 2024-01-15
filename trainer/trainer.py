@@ -49,6 +49,7 @@ trainer = Address.new_from_bech32(TRAINER_ADDR)
 signer = UserSigner.from_pem_file(Path(WALLET_DIR))
 network_provider = ApiNetworkProvider(NETWORK_PROVIDER)
 trainer_on_network = network_provider.get_account(trainer)
+nonce_holder = AccountNonceHolder(network_provider.get_account(trainer).nonce)
 
 print(f">>>[Trainer {trainer_id}] Loaded dataset")
 (train_images, train_labels), (test_images, test_labels) = mnist.load_data()
@@ -68,8 +69,6 @@ global_model.add(layers.Dense(10, activation='softmax'))
 global_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
 def sc_start_next_round():
-    nonce_holder = AccountNonceHolder(network_provider.get_account(trainer).nonce)
-    print(f'>>>[Trainer {trainer_id}] Current nonce: {network_provider.get_account(trainer).nonce}')
     call_transaction = sc_factory.create_transaction_for_execute(
         sender=trainer,
         contract=contract_address,
@@ -80,11 +79,9 @@ def sc_start_next_round():
     call_transaction.nonce = nonce_holder.get_nonce_then_increment()
     call_transaction.signature = signer.sign(transaction_computer.compute_bytes_for_signing(call_transaction))
 
-    print(f">>>[Trainer {trainer_id}] Transaction:", call_transaction.__dict__)
-    print(f">>>[Trainer {trainer_id}] Transaction data:", call_transaction.data)
-    
+    print(f'>>>[Trainer {trainer_id}] Transaction nonce: {call_transaction.nonce}')
     response = network_provider.send_transaction(call_transaction)
-    print(response)
+    print(f"Transaction hash: {response}")
 
 
 def sc_current_global_model():
@@ -100,8 +97,6 @@ def sc_current_global_model():
 
 
 def sc_upload_local_model(file_id):
-    nonce_holder = AccountNonceHolder(network_provider.get_account(trainer).nonce)
-    print(f'>>>[Trainer {trainer_id}] Current nonce: {network_provider.get_account(trainer).nonce}')
     call_transaction = sc_factory.create_transaction_for_execute(
         sender=trainer,
         contract=contract_address,
@@ -112,11 +107,9 @@ def sc_upload_local_model(file_id):
     call_transaction.nonce = nonce_holder.get_nonce_then_increment()
     call_transaction.signature = signer.sign(transaction_computer.compute_bytes_for_signing(call_transaction))
 
-    print(f">>>[Trainer {trainer_id}] Transaction:", call_transaction.__dict__)
-    print(f">>>[Trainer {trainer_id}] Transaction data:", call_transaction.data)
-    
+    print(f'>>>[Trainer {trainer_id}] Transaction nonce: {call_transaction.nonce}')
     response = network_provider.send_transaction(call_transaction)
-    print(response)
+    print(f"Transaction hash: {response}")
 
 
 def download_weights_ipfs(file_id, directory, filename):
@@ -142,7 +135,7 @@ def upload_weights_ipfs(weights, directory, filename):
 
 
 def on_training_round_started():
-    print(f">>>[Trainer {trainer_id}] Training round started!")
+    print(f"\n*\n*\n*\n>>>[Trainer {trainer_id}] Training round started!")
     global_file_id = sc_current_global_model()
     print(f">>>[Trainer {trainer_id}] Downloading global model for round {round} with file ID: {global_file_id}...")
     global_weights = download_weights_ipfs(
@@ -164,11 +157,12 @@ def on_training_round_started():
     sc_upload_local_model(new_local_id)
     print(f">>>[Trainer {trainer_id}] Uploaded local weights to smart contract!")
     print(f">>>[Trainer {trainer_id}] Starting the next round, but sleep 5 seconds...")
-    time.sleep(5)
+    time.sleep(8)
     sc_start_next_round()
 
 def on_session_ended():
     print(f">>>[Trainer {trainer_id}] Session ended!")
+    sys.exit()
 
 def process_blockchain_event(channel, method, properties, body):
     events = json.loads(body.decode('utf-8'))
@@ -185,15 +179,13 @@ def process_blockchain_event(channel, method, properties, body):
 
     for event in just_events:
         if event['identifier'] in possible_events:
-            print(event['identifier'])
             identifier = event['identifier']
             topic = base64.b64decode(event['topics'][0]).decode('utf-8').rstrip('\x00')
-            print(f"Received event {identifier}-{topic}")
             if (identifier == "set_active_round"):
                 if (topic == "training_started_event"):
                     on_training_round_started()
-            else:
-                print(f"Do nothing for {identifier}-{topic}")
+            elif (identifier == "end_session"):
+                on_session_ended()
 
 
 def setup_events_listener():
@@ -220,8 +212,7 @@ def setup_events_listener():
     
 
 def sc_signup():
-    nonce_holder = AccountNonceHolder(proposer_on_network.nonce)
-    print(f'>>>[Trainer {trainer_id}] Current nonce: {proposer_on_network.nonce}')
+    print(f'>>>[Trainer {trainer_id}] Current nonce: {trainer_on_network.nonce}')
     call_transaction = sc_factory.create_transaction_for_execute(
         sender=trainer,
         contract=contract_address,
@@ -231,12 +222,9 @@ def sc_signup():
     )
     call_transaction.nonce = nonce_holder.get_nonce_then_increment()
     call_transaction.signature = signer.sign(transaction_computer.compute_bytes_for_signing(call_transaction))
-
-    print(f">>>[Trainer {trainer_id}] Transaction:", call_transaction.__dict__)
-    print(f">>>[Trainer {trainer_id}] Transaction data:", call_transaction.data)
-    
+    print(f'>>>[Trainer {trainer_id}] Transaction nonce: {call_transaction.nonce}')
     response = network_provider.send_transaction(call_transaction)
-    print(response)
+    print(f"Transaction hash: {response}")
     
 
 # print(f">>>[Trainer {trainer_id}] Signing up to the current session...")

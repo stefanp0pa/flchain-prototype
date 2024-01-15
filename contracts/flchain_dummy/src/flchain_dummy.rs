@@ -66,7 +66,7 @@ pub trait FlchainDummy {
             round_seconds: ROUND_SECONDS,
         });
 
-        self.active_session_proposer().set(caller);
+        self.active_session_initiator().set(caller);
         self.version(session_id).set(0u32);
         self.global_updates(session_id, 0u32).insert(ModelUpdate {
             user_addr: self.blockchain().get_caller(),
@@ -74,13 +74,13 @@ pub trait FlchainDummy {
         });
         self.participants(session_id).insert(Participant {
             user_addr: self.blockchain().get_caller(),
-            role: Role::Proposer,
+            role: Role::Initiator,
         });
 
         self.active_round(session_id).set(1u8);
 
         self.session_started_event(session_id, now, rounds_signup, rounds_training, rounds_aggregation);
-        self.new_signup_event(session_id, self.blockchain().get_caller(), Role::Proposer);
+        self.new_signup_event(session_id, self.blockchain().get_caller(), Role::Initiator);
     }
 
     #[endpoint]
@@ -144,7 +144,7 @@ pub trait FlchainDummy {
         self.active_round(session_id).clear();
         self.version(session_id).clear();
         self.participants(session_id).clear();
-        self.active_session_proposer().clear();
+        self.active_session_initiator().clear();
         self.active_session_manager().clear();
     }
 
@@ -231,13 +231,13 @@ pub trait FlchainDummy {
     }
 
     #[view]
-    fn get_session_proposer(&self) -> ManagedAddress {
+    fn get_session_initiator(&self) -> ManagedAddress {
         require!(
-            !self.active_session_proposer().is_empty(),
+            !self.active_session_initiator().is_empty(),
             "No training session available!"
         );
 
-        self.active_session_proposer().get()
+        self.active_session_initiator().get()
     }
 
     #[view]
@@ -268,7 +268,7 @@ pub trait FlchainDummy {
     #[endpoint]
     fn set_global_version(&self, file_location: ManagedBuffer) {
         require!(
-            !self.active_session_proposer().is_empty(),
+            !self.active_session_initiator().is_empty(),
             "No training session available!"
         );
         let caller = self.blockchain().get_caller();
@@ -285,7 +285,7 @@ pub trait FlchainDummy {
     #[view]
     fn get_current_global_version(&self) -> ManagedBuffer {
         require!(
-            !self.active_session_proposer().is_empty(),
+            !self.active_session_initiator().is_empty(),
             "No training session available!"
         );
 
@@ -298,7 +298,7 @@ pub trait FlchainDummy {
     #[endpoint]
     fn set_local_update(&self, file_location: ManagedBuffer) {
         require!(
-            !self.active_session_proposer().is_empty(),
+            !self.active_session_initiator().is_empty(),
             "No training session available!"
         );
         let caller = self.blockchain().get_caller();
@@ -313,7 +313,7 @@ pub trait FlchainDummy {
     #[view]
     fn get_local_updates(&self) -> ManagedVec<ManagedBuffer> {
         require!(
-            !self.active_session_proposer().is_empty(),
+            !self.active_session_initiator().is_empty(),
             "No training session available!"
         );
         let session_id = self.active_session_manager().get().session_id;
@@ -386,8 +386,8 @@ pub trait FlchainDummy {
     #[storage_mapper("active_session_manager")]
     fn active_session_manager(&self) -> SingleValueMapper<SessionManager>;
 
-    #[storage_mapper("active_session_proposer")]
-    fn active_session_proposer(&self) -> SingleValueMapper<ManagedAddress>;
+    #[storage_mapper("active_session_initiator")]
+    fn active_session_initiator(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[storage_mapper("active_round")]
     fn active_round(&self, sessiond_id: u64) -> SingleValueMapper<u8>;

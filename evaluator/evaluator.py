@@ -32,6 +32,7 @@ EVALUATOR_ADDR = "erd1kjq8ehzy6xcsahyaw64lk5t7uhfqfn3a27udzqzgaulzw2dasaxqp82j5d
 NETWORK_PROVIDER = "https://devnet-api.multiversx.com"
 SC_CURRENT_GLOBAL="get_current_global_version"
 SC_SET_ACTIVE_ROUND="set_active_round"
+SC_END_SESSION="end_session"
 GAS_LIMIT = 60000000
 MODELS_DIR = '/Users/stefan/ssi-proiect/models/'
 NEXT_ROUND = 2
@@ -40,9 +41,10 @@ config = TransactionsFactoryConfig(chain_id="D")
 transaction_computer = TransactionComputer()
 sc_factory = SmartContractTransactionsFactory(config, TokenComputer())
 contract_address = Address.from_bech32(SC_ADDR)
-trainer = Address.new_from_bech32(EVALUATOR_ADDR)
+evaluator = Address.new_from_bech32(EVALUATOR_ADDR)
 signer = UserSigner.from_pem_file(Path(WALLET_DIR))
 network_provider = ApiNetworkProvider(NETWORK_PROVIDER)
+nonce_holder = AccountNonceHolder(network_provider.get_account(evaluator).nonce)
 
 print(f">>>[Evaluator] Loaded dataset")
 (train_images, train_labels), (test_images, test_labels) = mnist.load_data()
@@ -59,12 +61,27 @@ global_model.add(layers.Flatten())
 global_model.add(layers.Dense(10, activation='softmax'))
 global_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
+def sc_end_session():
+    call_transaction = sc_factory.create_transaction_for_execute(
+        sender=evaluator,
+        contract=contract_address,
+        function=SC_END_SESSION,
+        gas_limit=GAS_LIMIT,
+        arguments=[]
+    )
+    call_transaction.nonce = nonce_holder.get_nonce_then_increment()
+    print(f'>>>[Evaluator] Transaction nonce: {call_transaction.nonce}')
+    call_transaction.signature = signer.sign(transaction_computer.compute_bytes_for_signing(call_transaction))
+    response = network_provider.send_transaction(call_transaction)
+    print(f"Transaction hash: {response}")
+
+
 def sc_current_global_model():
     builder = ContractQueryBuilder(
         contract=contract_address,
         function=SC_CURRENT_GLOBAL,
         call_arguments=[],
-        caller=trainer
+        caller=evaluator
     )
     query = builder.build()
     response = network_provider.query_contract(query)
@@ -72,23 +89,18 @@ def sc_current_global_model():
 
 
 def sc_start_next_round():
-    nonce_holder = AccountNonceHolder(network_provider.get_account(trainer).nonce)
-    print(f'>>>[Evaluator] Current nonce: {network_provider.get_account(trainer).nonce}')
     call_transaction = sc_factory.create_transaction_for_execute(
-        sender=trainer,
+        sender=evaluator,
         contract=contract_address,
         function=SC_SET_ACTIVE_ROUND,
         gas_limit=GAS_LIMIT,
         arguments=[NEXT_ROUND]
     )
     call_transaction.nonce = nonce_holder.get_nonce_then_increment()
+    print(f'>>>[Evaluator] Transaction nonce: {network_provider.get_account(evaluator).nonce}')
     call_transaction.signature = signer.sign(transaction_computer.compute_bytes_for_signing(call_transaction))
-
-    print(">>>[Evaluator] Transaction:", call_transaction.__dict__)
-    print(">>>[Evaluator] Transaction data:", call_transaction.data)
-    
     response = network_provider.send_transaction(call_transaction)
-    print(response)
+    print(f"Transaction hash: {response}")
 
 
 def download_weights_ipfs(file_id, directory, filename):
@@ -104,7 +116,7 @@ def download_weights_ipfs(file_id, directory, filename):
 
 
 def on_evaluating_round_started():
-    print(f">>>[Evaluator] Evaluating round started!")
+    print(f"\n*\n*\n*\n>>>[Evaluator] Evaluating round started!")
     global_file_id = sc_current_global_model()
     print(f">>>[Evaluator] Downloading global model for round {round} with file ID: {global_file_id}...")
     global_weights = download_weights_ipfs(
@@ -116,11 +128,14 @@ def on_evaluating_round_started():
     print(f'>>>[Evaluator] Final Test Loss: {test_loss}')
     
     if (test_acc > 0.94) :
-        print(f">>>[Evaluator] Accuracy is greater than 0.94, so we will stop the training!")
+        print(f">>>[Evaluator] Accuracy is greater than 0.94, so we will stop the session...")
+        time.sleep(8)
+        sc_end_session()
+        print(f">>>[Evaluator] Session ended!")
         sys.exit()
     else:
         print(f">>>[Evaluator] Accuracy is less than 0.94, so we will continue the training!")
-        time.sleep(5)
+        time.sleep(8)
         sc_start_next_round()
 
 
@@ -139,15 +154,14 @@ def process_blockchain_event(channel, method, properties, body):
 
     for event in just_events:
         if event['identifier'] in possible_events:
-            print(event['identifier'])
             identifier = event['identifier']
             topic = base64.b64decode(event['topics'][0]).decode('utf-8').rstrip('\x00')
-            print(f"Received event {identifier}-{topic}")
             if (identifier == "set_active_round"):
                 if (topic == "evaluation_started_event"):
                     on_evaluating_round_started()
-            else:
-                print(f"Do nothing for {identifier}-{topic}")
+            elif (identifier == "end_session"):
+                print(f">>>[Evaluator] Session ended!")
+                sys.exit()
 
 
 def setup_events_listener():

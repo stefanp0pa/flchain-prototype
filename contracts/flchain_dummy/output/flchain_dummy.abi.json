@@ -149,7 +149,7 @@
             ]
         },
         {
-            "name": "get_session_proposer",
+            "name": "get_session_initiator",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -351,7 +351,7 @@
             "type": "enum",
             "variants": [
                 {
-                    "name": "Proposer",
+                    "name": "Initiator",
                     "discriminant": 0
                 },
                 {

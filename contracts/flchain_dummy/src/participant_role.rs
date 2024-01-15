@@ -2,14 +2,14 @@ multiversx_sc::derive_imports!();
 
 #[derive(TopEncode, TopDecode, NestedDecode, NestedEncode, TypeAbi, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Role {
-    Proposer,
+    Initiator,
     Trainer,
     Aggregator
 }
 
 impl Role {
-    pub fn can_propose(&self) -> bool {
-        matches!(*self, Role::Proposer)
+    pub fn can_initiate(&self) -> bool {
+        matches!(*self, Role::Initiator)
     }
     
     pub fn can_train(&self) -> bool {
@@ -21,12 +21,12 @@ impl Role {
     }
 
     pub fn can_end_session(&self) -> bool {
-        matches!(*self, Role::Proposer)
+        matches!(*self, Role::Initiator)
     }
 
     pub fn match_role(number: u8) -> Option<Role> {
         match number {
-            0 => Some(Role::Proposer),
+            0 => Some(Role::Initiator),
             1 => Some(Role::Trainer),
             2 => Some(Role::Aggregator),
             _ => None

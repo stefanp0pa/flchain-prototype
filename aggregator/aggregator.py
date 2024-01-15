@@ -48,6 +48,7 @@ contract_address = Address.from_bech32(SC_ADDR)
 aggregator = Address.new_from_bech32(TRAINER_ADDR)
 signer = UserSigner.from_pem_file(Path(WALLET_DIR))
 network_provider = ApiNetworkProvider(NETWORK_PROVIDER)
+nonce_holder = AccountNonceHolder(network_provider.get_account(aggregator).nonce)
 
 def upload_weights_ipfs(weights, directory, filename):
     upload_file = os.path.join(directory, filename)
@@ -71,8 +72,6 @@ def download_weights_ipfs(file_id, directory, filename):
 
 
 def sc_start_next_round():
-    nonce_holder = AccountNonceHolder(network_provider.get_account(aggregator).nonce)
-    print(f'>>>[Aggregator] Current nonce: {network_provider.get_account(aggregator).nonce}')
     call_transaction = sc_factory.create_transaction_for_execute(
         sender=aggregator,
         contract=contract_address,
@@ -81,18 +80,13 @@ def sc_start_next_round():
         arguments=[NEXT_ROUND]
     )
     call_transaction.nonce = nonce_holder.get_nonce_then_increment()
+    print(f'>>>[Aggregator] Transaction nonce: {call_transaction.nonce}')
     call_transaction.signature = signer.sign(transaction_computer.compute_bytes_for_signing(call_transaction))
-
-    print(f">>>[Aggregator] Transaction:", call_transaction.__dict__)
-    print(f">>>[Aggregator] Transaction data:", call_transaction.data)
-    
     response = network_provider.send_transaction(call_transaction)
-    print(response)
+    print(f"Transaction hash: {response}")
 
 
 def sc_set_global_model(file_id):
-    nonce_holder = AccountNonceHolder(network_provider.get_account(aggregator).nonce)
-    print(f'>>>[Aggregator] Current nonce: {network_provider.get_account(aggregator).nonce}')
     call_transaction = sc_factory.create_transaction_for_execute(
         sender=aggregator,
         contract=contract_address,
@@ -101,13 +95,10 @@ def sc_set_global_model(file_id):
         arguments=[file_id]
     )
     call_transaction.nonce = nonce_holder.get_nonce_then_increment()
+    print(f'>>>[Aggregator] Transaction nonce: {call_transaction.nonce}')
     call_transaction.signature = signer.sign(transaction_computer.compute_bytes_for_signing(call_transaction))
-
-    print(">>>[Aggregator] Transaction:", call_transaction.__dict__)
-    print(">>>[Aggregator] Transaction data:", call_transaction.data)
-    
     response = network_provider.send_transaction(call_transaction)
-    print(response)
+    print(f"Transaction hash: {response}")
 
 def sc_get_local_updates():
     builder = ContractQueryBuilder(
@@ -138,7 +129,7 @@ def sc_current_global_model():
 
 
 def on_aggregating_round_started():
-    print(f">>>[Aggregator] Aggregating round started!")
+    print(f"\n*\n*\n*\n>>>[Aggregator] Aggregating round started!")
     curr_global_id = sc_current_global_model()
     print(f">>>[Aggregator] Current global model ID: {curr_global_id}")
     global_weights = download_weights_ipfs(curr_global_id, MODELS_DIR, "curr_global_model.pkl")
@@ -157,7 +148,7 @@ def on_aggregating_round_started():
     sc_set_global_model(new_global_id)
     print(f">>>[Aggregator] New global model ID: {new_global_id}")
     print(f">>>[Aggregator] Starting the next round, but sleep 5 seconds...")
-    time.sleep(5)
+    time.sleep(8)
     sc_start_next_round()
     
 
@@ -176,16 +167,15 @@ def process_blockchain_event(channel, method, properties, body):
 
     for event in just_events:
         if event['identifier'] in possible_events:
-            print(event['identifier'])
             identifier = event['identifier']
             topic = base64.b64decode(event['topics'][0]).decode('utf-8')
-            print(f"Received event {identifier}-{topic}")
             if (identifier == "set_active_round"):
                 if (topic == "aggregation_started_event"):
                     on_aggregating_round_started()
-            else:
-                print(f"Do nothing for {identifier}-{topic}")
-
+            elif (identifier == "end_session"):
+                print(f">>>[Aggregator] Session ended!")
+                sys.exit()
+                
 
 def setup_events_listener():
     host = os.getenv("BEACONX_HOST")

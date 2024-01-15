@@ -31,7 +31,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         is_signup_open => is_signup_open
         is_training_open => is_training_open
         is_aggregation_open => is_aggregation_open
-        get_session_proposer => get_session_proposer
+        get_session_initiator => get_session_initiator
         get_active_round => get_active_round
         set_active_round => set_active_round
         set_global_version => set_global_version
