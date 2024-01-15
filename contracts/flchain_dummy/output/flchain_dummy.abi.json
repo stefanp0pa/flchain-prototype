@@ -336,6 +336,16 @@
                     "indexed": true
                 }
             ]
+        },
+        {
+            "identifier": "evaluation_started_event",
+            "inputs": [
+                {
+                    "name": "session_id",
+                    "type": "u64",
+                    "indexed": true
+                }
+            ]
         }
     ],
     "esdtAttributes": [],
